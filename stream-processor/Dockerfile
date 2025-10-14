@@ -18,8 +18,6 @@ COPY main.py .
 # Configuration par défaut
 ENV PROCESSOR_MODE=rest \
     PORT=8001 \
-    KAFKA_BOOTSTRAP_SERVERS=kafka:9092 \
-    KAFKA_TOPIC=ferrari-telemetry \
     LOG_LEVEL=INFO
 
 # Exposition du port

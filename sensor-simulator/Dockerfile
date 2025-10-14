@@ -15,12 +15,10 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY main.py .
 
 # Configuration par défaut
-ENV TELEMETRY_MODE=kafka \
+ENV TELEMETRY_MODE=http \
     CAR_ID=Ferrari-F1-75 \
     DRIVER=Charles_Leclerc \
     TARGET_THROUGHPUT=1500 \
-    KAFKA_BOOTSTRAP_SERVERS=kafka:9092 \
-    KAFKA_TOPIC=ferrari-telemetry \
     HTTP_ENDPOINT=http://stream-processor:8001/telemetry
 
 # Point d'entrée

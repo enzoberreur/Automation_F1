@@ -23,13 +23,7 @@ import uvicorn
 # Prometheus
 from prometheus_client import Counter, Histogram, Gauge, generate_latest, CONTENT_TYPE_LATEST
 
-# Kafka (optionnel)
-try:
-    from kafka import KafkaConsumer
-    KAFKA_AVAILABLE = True
-except ImportError:
-    KAFKA_AVAILABLE = False
-    print("⚠️  kafka-python non installé. Mode REST uniquement.")
+# Mode REST uniquement
 
 # Configuration du logging
 logging.basicConfig(
@@ -622,39 +616,6 @@ async def get_stats():
 # CONSUMER KAFKA (optionnel)
 # ============================================================================
 
-async def kafka_consumer_loop():
-    """Boucle de consommation Kafka"""
-    if not KAFKA_AVAILABLE:
-        logger.warning("Kafka non disponible, mode REST uniquement")
-        return
-    
-    kafka_servers = os.getenv("KAFKA_BOOTSTRAP_SERVERS", "localhost:9092")
-    kafka_topic = os.getenv("KAFKA_TOPIC", "ferrari-telemetry")
-    
-    logger.info(f"📡 Démarrage du consumer Kafka: {kafka_servers} -> {kafka_topic}")
-    
-    try:
-        consumer = KafkaConsumer(
-            kafka_topic,
-            bootstrap_servers=kafka_servers.split(','),
-            value_deserializer=lambda m: json.loads(m.decode('utf-8')),
-            auto_offset_reset='latest',
-            enable_auto_commit=True,
-            group_id='ferrari-stream-processor'
-        )
-        
-        logger.info("✅ Consumer Kafka connecté")
-        
-        for message in consumer:
-            try:
-                data = message.value
-                processor.process_message(data)
-            except Exception as e:
-                logger.error(f"Erreur traitement message Kafka: {e}")
-        
-    except Exception as e:
-        logger.error(f"Erreur consumer Kafka: {e}")
-
 
 # ============================================================================
 # POINT D'ENTRÉE
@@ -672,14 +633,7 @@ def main():
     logger.info(f"Mode: {mode.upper()}")
     logger.info(f"Port: {port}")
     
-    if mode == "kafka" and KAFKA_AVAILABLE:
-        # Mode Kafka: Démarrer le consumer en arrière-plan
-        import threading
-        kafka_thread = threading.Thread(target=lambda: asyncio.run(kafka_consumer_loop()), daemon=True)
-        kafka_thread.start()
-        logger.info("✅ Consumer Kafka démarré en arrière-plan")
-    
-    # Démarrer l'API REST (pour REST mode et pour les métriques en Kafka mode)
+    # Mode REST uniquement
     logger.info(f"🌐 API REST démarrée sur http://0.0.0.0:{port}")
     logger.info(f"📊 Métriques Prometheus: http://0.0.0.0:{port}/metrics")
     

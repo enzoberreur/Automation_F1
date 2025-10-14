@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Ferrari F1 IoT Sensor Simulator - High Performance Edition
-Génère 1000-2000 messages/seconde de télémétrie avec support Kafka/HTTP
+Génère 1000-2000 messages/seconde de télémétrie avec support HTTP
 """
 
 import json
@@ -17,21 +17,13 @@ from concurrent.futures import ThreadPoolExecutor
 import threading
 from contextlib import nullcontext
 
-# Import conditionnel pour Kafka
-try:
-    from kafka import KafkaProducer
-    KAFKA_AVAILABLE = True
-except ImportError:
-    KAFKA_AVAILABLE = False
-    print("⚠️  kafka-python non installé. Mode HTTP uniquement.")
-
 # Import pour HTTP
 try:
     import aiohttp
     HTTP_AVAILABLE = True
 except ImportError:
     HTTP_AVAILABLE = False
-    print("⚠️  aiohttp non installé. Mode Kafka uniquement.")
+    print("⚠️  aiohttp non installé. Impossible de démarrer.")
 
 # Import pour métriques Prometheus
 try:
@@ -385,38 +377,6 @@ class MetricsCollector:
         """)
 
 
-class KafkaPublisher:
-    """Publisher pour Apache Kafka"""
-    
-    def __init__(self, bootstrap_servers: str, topic: str):
-        if not KAFKA_AVAILABLE:
-            raise ImportError("kafka-python non installé")
-        
-        self.topic = topic
-        self.producer = KafkaProducer(
-            bootstrap_servers=bootstrap_servers.split(','),
-            value_serializer=lambda v: json.dumps(v).encode('utf-8'),
-            compression_type='gzip',
-            linger_ms=10,  # Batch messages
-            batch_size=16384,
-            acks=0,  # Fire and forget pour performance maximale
-        )
-        logger.info(f"✅ Kafka Producer initialisé: {bootstrap_servers} -> {topic}")
-    
-    def send(self, data: TelemetryData) -> float:
-        """Envoie des données à Kafka et retourne la latence"""
-        start = time.time()
-        data_dict = asdict(data)
-        self.producer.send(self.topic, value=data_dict)
-        latency = time.time() - start
-        return latency
-    
-    def close(self):
-        """Ferme la connexion Kafka"""
-        self.producer.flush()
-        self.producer.close()
-
-
 class HTTPPublisher:
     """Publisher pour endpoint HTTP"""
     
@@ -486,25 +446,21 @@ class FerrariSensorSimulator:
         self.publisher = None
         
         # Configuration du mode de transport
-        self.mode = config.get("mode", "kafka").lower()
+        self.mode = config.get("mode", "http").lower()
         self.target_throughput = config.get("target_throughput", 1500)  # msg/s
         
         # Démarrer serveur métriques Prometheus
         self.start_metrics_server()
         
     def setup_publisher(self):
-        """Configure le publisher selon le mode"""
-        if self.mode == "kafka":
-            self.publisher = KafkaPublisher(
-                bootstrap_servers=self.config.get("kafka_bootstrap_servers", "localhost:9092"),
-                topic=self.config.get("kafka_topic", "ferrari-telemetry")
-            )
-        elif self.mode == "http":
-            self.publisher = HTTPPublisher(
-                endpoint_url=self.config.get("http_endpoint", "http://localhost:8001/telemetry")
-            )
-        else:
-            raise ValueError(f"Mode non supporté: {self.mode}")
+        """Configure le publisher HTTP"""
+        if self.mode != "http":
+            logger.warning(f"⚠️  Mode '{self.mode}' non supporté, passage en mode HTTP")
+            self.mode = "http"
+            
+        self.publisher = HTTPPublisher(
+            endpoint_url=self.config.get("http_endpoint", "http://localhost:8001/telemetry")
+        )
     
     def start_metrics_server(self):
         """Démarre le serveur HTTP pour les métriques Prometheus"""
@@ -536,14 +492,10 @@ class FerrariSensorSimulator:
                 # Génération du message
                 telemetry = self.generator.generate()
                 
-                # Envoi
+                # Envoi HTTP
                 try:
-                    if self.mode == "kafka":
-                        latency = self.publisher.send(telemetry)
-                        self.metrics.record_success(latency)
-                    elif self.mode == "http":
-                        latency = await self.publisher.send(telemetry)
-                        self.metrics.record_success(latency)
+                    latency = await self.publisher.send(telemetry)
+                    self.metrics.record_success(latency)
                 except Exception as e:
                     logger.error(f"Erreur d'envoi: {e}")
                     self.metrics.record_failure()
@@ -560,14 +512,11 @@ class FerrariSensorSimulator:
         finally:
             if self.mode == "http":
                 await self.publisher.close()
-            elif self.mode == "kafka":
-                self.publisher.close()
-            
             # Rapport final
             self.metrics.print_report()
     
     def run_sync(self):
-        """Exécution synchrone (pour Kafka haute performance)"""
+        """Exécution synchrone (mode de compatibilité)"""
         logger.info(f"🏁 Démarrage du simulateur en mode {self.mode.upper()}")
         logger.info(f"🎯 Objectif: {self.target_throughput} messages/s")
         
@@ -608,23 +557,18 @@ class FerrariSensorSimulator:
     
     def run(self):
         """Point d'entrée principal"""
-        if self.mode == "http":
-            asyncio.run(self.run_async())
-        else:
-            self.run_sync()
+        asyncio.run(self.run_async())
 
 
 def load_config() -> Dict:
     """Charge la configuration depuis les variables d'environnement"""
     config = {
-        "mode": os.getenv("TELEMETRY_MODE", "kafka"),  # kafka ou http
+        "mode": os.getenv("TELEMETRY_MODE", "http"),  # http uniquement
         "car_id": os.getenv("CAR_ID", "Ferrari-F1-75"),
         "driver": os.getenv("DRIVER", "Charles Leclerc"),
         "target_throughput": int(os.getenv("TARGET_THROUGHPUT", "1500")),
         
-        # Kafka
-        "kafka_bootstrap_servers": os.getenv("KAFKA_BOOTSTRAP_SERVERS", "localhost:9092"),
-        "kafka_topic": os.getenv("KAFKA_TOPIC", "ferrari-telemetry"),
+
         
         # HTTP
         "http_endpoint": os.getenv("HTTP_ENDPOINT", "http://stream-processor:8001/telemetry"),

@@ -26,7 +26,7 @@ spec:
         env:
         # Mode de fonctionnement
         - name: TELEMETRY_MODE
-          value: "kafka"
+          value: "http"
         
         # Identité de la voiture
         - name: CAR_ID
@@ -38,13 +38,7 @@ spec:
         - name: TARGET_THROUGHPUT
           value: "1500"
         
-        # Configuration Kafka
-        - name: KAFKA_BOOTSTRAP_SERVERS
-          value: "kafka:9092"
-        - name: KAFKA_TOPIC
-          value: "ferrari-telemetry"
-        
-        # Configuration HTTP (alternative)
+        # Configuration HTTP
         - name: HTTP_ENDPOINT
           value: "http://stream-processor:8001/telemetry"
         
@@ -105,13 +99,9 @@ metadata:
   name: sensor-simulator-config
 data:
   # Configuration globale
-  telemetry.mode: "kafka"
+  telemetry.mode: "http"
   performance.target.throughput: "1500"
   anomaly.probability: "0.02"
-  
-  # Kafka
-  kafka.bootstrap.servers: "kafka:9092"
-  kafka.topic: "ferrari-telemetry"
   
   # HTTP
   http.endpoint: "http://stream-processor:8001/telemetry"

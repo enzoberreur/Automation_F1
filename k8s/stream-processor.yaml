@@ -31,17 +31,11 @@ spec:
         env:
         # Mode de fonctionnement
         - name: PROCESSOR_MODE
-          value: "rest"  # ou "kafka"
+          value: "rest"
         
         # Configuration du port
         - name: PORT
           value: "8001"
-        
-        # Configuration Kafka (si mode kafka)
-        - name: KAFKA_BOOTSTRAP_SERVERS
-          value: "kafka:9092"
-        - name: KAFKA_TOPIC
-          value: "ferrari-telemetry"
         
         # Logging
         - name: LOG_LEVEL
@@ -117,11 +111,6 @@ data:
   anomaly.brake.temp.threshold: "950"
   anomaly.tire.temp.threshold: "130"
   anomaly.detection.window: "2"
-  
-  # Kafka
-  kafka.bootstrap.servers: "kafka:9092"
-  kafka.topic: "ferrari-telemetry"
-  kafka.group.id: "ferrari-stream-processor"
   
   # Performance
   max.history.size: "100"

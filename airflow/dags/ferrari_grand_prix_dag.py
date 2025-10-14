@@ -75,10 +75,9 @@ class ServiceManager:
             'status': 'started',
             'timestamp': datetime.utcnow().isoformat(),
             'config': {
-                'mode': 'kafka',
+                'mode': 'http',
                 'target_throughput': target_throughput,
                 'duration': duration_seconds,
-                'kafka_topic': 'ferrari-telemetry',
                 'car_id': 'Ferrari-F1-75',
                 'driver': 'Charles_Leclerc'
             }
@@ -95,9 +94,9 @@ class ServiceManager:
         """Démarre le processeur de flux"""
         logger.info("🔄 Démarrage du Stream Processor...")
         
-        # Récupérer la config du simulateur
+        # Récupérer la config du simulateur avec le bon task_id (TaskGroup)
         simulator_config = context['task_instance'].xcom_pull(
-            task_ids='start_sensor_simulator',
+            task_ids='start_services.start_sensor_simulator',
             key='simulator_config'
         )
         
@@ -106,8 +105,7 @@ class ServiceManager:
             'status': 'started',
             'timestamp': datetime.utcnow().isoformat(),
             'config': {
-                'mode': 'kafka',
-                'kafka_topic': simulator_config['config']['kafka_topic'],
+                'mode': 'rest',
                 'port': 8001
             }
         }
@@ -121,7 +119,7 @@ class ServiceManager:
     def wait_for_data_collection(**context) -> Dict:
         """Attend la collecte des données pendant la durée configurée"""
         simulator_config = context['task_instance'].xcom_pull(
-            task_ids='start_sensor_simulator',
+            task_ids='start_services.start_sensor_simulator',
             key='simulator_config'
         )
         
@@ -179,7 +177,7 @@ class DataPersistence:
         pg_hook = PostgresHook(postgres_conn_id='ferrari_postgres')
         
         # Générer des données de démonstration
-        # En production, on lirait depuis Kafka ou l'API du stream-processor
+        # En production, on lirait depuis l'API du stream-processor
         sample_data = DataPersistence._generate_sample_data(
             count=min(100, collection_stats['estimated_messages'])
         )
@@ -315,7 +313,7 @@ class BatchAnalytics:
         logger.info("🏁 Analyse des stratégies pit-stop...")
         
         statistics = context['task_instance'].xcom_pull(
-            task_ids='compute_statistics',
+            task_ids='batch_analysis.compute_statistics',
             key='statistics'
         )
         
@@ -360,12 +358,12 @@ class NotificationManager:
         
         # Récupérer toutes les données des tâches précédentes
         statistics = context['task_instance'].xcom_pull(
-            task_ids='compute_statistics',
+            task_ids='batch_analysis.compute_statistics',
             key='statistics'
         )
         
         recommendations = context['task_instance'].xcom_pull(
-            task_ids='analyze_pitstop_recommendations',
+            task_ids='batch_analysis.analyze_pitstop_recommendations',
             key='recommendations'
         )
         
@@ -477,13 +475,7 @@ with DAG(
             doc_md="Crée la table telemetry_data avec les index nécessaires"
         )
         
-        check_kafka = BashOperator(
-            task_id='check_kafka',
-            bash_command='echo "Vérification de Kafka... OK"',
-            doc_md="Vérifie que Kafka est disponible"
-        )
-        
-        [create_telemetry_table, check_kafka]
+        create_telemetry_table
     
     # ========================================================================
     # ÉTAPE 2: DÉMARRAGE DES SERVICES
@@ -607,7 +599,7 @@ Ce DAG implémente le workflow d'automation complet exigé par le projet:
                     ┌──────────────────────────┐
                     │  2. PREPARE INFRASTRUCTURE│
                     │  • Create DB Tables      │
-                    │  • Check Kafka           │
+                    │  • Check Database        │
                     └────────┬─────────────────┘
                              │
                              ▼
