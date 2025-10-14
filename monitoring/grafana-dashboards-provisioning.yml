@@ -1,0 +1,16 @@
+# Grafana Dashboards Provisioning Configuration
+# Configure le chargement automatique des dashboards
+
+apiVersion: 1
+
+providers:
+  - name: 'Ferrari F1 Dashboards'
+    orgId: 1
+    folder: 'Ferrari IoT'
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 30
+    allowUiUpdates: true
+    options:
+      path: /var/lib/grafana/dashboards
+      foldersFromFilesStructure: true

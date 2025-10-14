@@ -1,0 +1,84 @@
+# Configuration Prometheus pour Ferrari F1 IoT Smart Pit-Stop
+# Ce fichier définit tous les scrape targets pour la collecte des métriques
+
+global:
+  scrape_interval: 15s          # Collecte toutes les 15 secondes
+  evaluation_interval: 15s      # Évalue les règles toutes les 15 secondes
+  scrape_timeout: 10s           # Timeout de scraping
+
+  # Labels externes ajoutés à toutes les métriques
+  external_labels:
+    cluster: 'ferrari-f1'
+    environment: 'production'
+    team: 'scuderia-ferrari'
+
+# ============================================================================
+# SCRAPE CONFIGURATIONS - Collecte des métriques des services
+# ============================================================================
+
+scrape_configs:
+  # --------------------------------------------------------------------------
+  # Prometheus lui-même (auto-monitoring)
+  # --------------------------------------------------------------------------
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+        labels:
+          service: 'prometheus'
+          component: 'monitoring'
+
+  # --------------------------------------------------------------------------
+  # SENSOR SIMULATOR - Métriques de génération de télémétrie
+  # --------------------------------------------------------------------------
+  - job_name: 'sensor-simulator'
+    scrape_interval: 5s           # Plus fréquent pour temps réel
+    metrics_path: '/metrics'      # Endpoint exposé par le simulator
+    static_configs:
+      - targets: 
+          - 'sensor-simulator:8000'  # Service Docker
+        labels:
+          service: 'sensor-simulator'
+          component: 'data-generation'
+          tier: 'backend'
+
+  # --------------------------------------------------------------------------
+  # STREAM PROCESSOR - Métriques de traitement et détection d'anomalies
+  # --------------------------------------------------------------------------
+  - job_name: 'stream-processor'
+    scrape_interval: 5s           # Haute fréquence pour latence temps réel
+    metrics_path: '/metrics'      # Endpoint exposé par le processor
+    static_configs:
+      - targets:
+          - 'stream-processor:8001'  # Service Docker
+        labels:
+          service: 'stream-processor'
+          component: 'data-processing'
+          tier: 'backend'
+    
+    # Configuration additionnelle pour haute disponibilité
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+      - source_labels: [__scheme__]
+        target_label: scheme
+      - source_labels: [job]
+        target_label: job
+
+  # --------------------------------------------------------------------------
+  # CADVISOR - Métriques conteneurs Docker/Kubernetes
+  # --------------------------------------------------------------------------
+  - job_name: 'cadvisor'
+    scrape_interval: 10s
+    static_configs:
+      - targets:
+          - 'cadvisor:8080'  # Métriques conteneurs
+        labels:
+          service: 'cadvisor'
+          component: 'container-metrics'
+          tier: 'infrastructure'
+    
+    # Filtrer les métriques pour réduire le volume
+    metric_relabel_configs:
+      - source_labels: [__name__]
+        regex: 'container_(cpu_usage_seconds_total|memory_usage_bytes|network_receive_bytes_total|network_transmit_bytes_total|fs_usage_bytes)'
+        action: keep

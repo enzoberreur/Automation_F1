@@ -1,0 +1,186 @@
+version: '3.8'
+
+services:
+  # Service de simulation des capteurs Ferrari F1
+  sensor-simulator:
+    build:
+      context: ./sensor-simulator
+      dockerfile: Dockerfile
+    container_name: ferrari-sensor-simulator
+    environment:
+      - TELEMETRY_MODE=http
+      - HTTP_ENDPOINT=http://ferrari-stream-processor:8001/telemetry
+      - TARGET_THROUGHPUT=1000
+      - SENSOR_INTERVAL=5
+    ports:
+      - "8000:8000"
+    depends_on:
+      - stream-processor
+    restart: unless-stopped
+    networks:
+      - ferrari-network
+
+  # Service de traitement des flux de données
+  stream-processor:
+    build:
+      context: ./stream-processor
+      dockerfile: Dockerfile
+    container_name: ferrari-stream-processor
+    environment:
+      - PROCESSOR_MODE=rest
+      - PORT=8001
+    ports:
+      - "8001:8001"
+    restart: unless-stopped
+    networks:
+      - ferrari-network
+
+  # PostgreSQL pour Airflow
+  postgres:
+    image: postgres:14
+    container_name: ferrari-postgres
+    environment:
+      - POSTGRES_USER=airflow
+      - POSTGRES_PASSWORD=airflow
+      - POSTGRES_DB=airflow
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - ferrari-network
+
+  # Redis pour Airflow
+  redis:
+    image: redis:7
+    container_name: ferrari-redis
+    networks:
+      - ferrari-network
+
+  # Airflow Webserver
+  airflow-webserver:
+    build:
+      context: ./airflow
+      dockerfile: Dockerfile
+    container_name: ferrari-airflow-webserver
+    command: >
+      bash -c "airflow db init &&
+               airflow users create --username admin --password admin --firstname Ferrari --lastname F1 --role Admin --email admin@ferrari.com &&
+               airflow webserver"
+    ports:
+      - "8080:8080"
+    environment:
+      - AIRFLOW__CORE__EXECUTOR=LocalExecutor
+      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@postgres/airflow
+      - AIRFLOW__CORE__LOAD_EXAMPLES=False
+      - AIRFLOW__WEBSERVER__SECRET_KEY=ferrari_secret_key_2025
+    depends_on:
+      - postgres
+      - redis
+    volumes:
+      - ./airflow/dags:/opt/airflow/dags
+      - airflow-logs:/opt/airflow/logs
+    restart: unless-stopped
+    networks:
+      - ferrari-network
+
+  # Airflow Scheduler
+  airflow-scheduler:
+    build:
+      context: ./airflow
+      dockerfile: Dockerfile
+    container_name: ferrari-airflow-scheduler
+    command: airflow scheduler
+    environment:
+      - AIRFLOW__CORE__EXECUTOR=LocalExecutor
+      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@postgres/airflow
+      - AIRFLOW__CORE__LOAD_EXAMPLES=False
+    depends_on:
+      - postgres
+      - redis
+      - airflow-webserver
+    volumes:
+      - ./airflow/dags:/opt/airflow/dags
+      - airflow-logs:/opt/airflow/logs
+    restart: unless-stopped
+    networks:
+      - ferrari-network
+
+  # Service de monitoring
+  monitoring:
+    build:
+      context: ./monitoring
+      dockerfile: Dockerfile
+    container_name: ferrari-monitoring
+    environment:
+      - MONITOR_INTERVAL=15
+    restart: unless-stopped
+    networks:
+      - ferrari-network
+
+  # Prometheus pour les métriques
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: ferrari-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+    restart: unless-stopped
+    networks:
+      - ferrari-network
+
+  # Grafana pour la visualisation
+  grafana:
+    image: grafana/grafana:latest
+    container_name: ferrari-grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_PROVISIONING_PATH=/etc/grafana/provisioning
+      - GF_INSTALL_PLUGINS=grafana-piechart-panel,grafana-worldmap-panel
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./monitoring/grafana-datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml
+      - ./monitoring/grafana-dashboards-provisioning.yml:/etc/grafana/provisioning/dashboards/dashboards.yml
+      - ./monitoring/grafana_dashboard.json:/etc/grafana/dashboards/grafana_dashboard.json
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+    networks:
+      - ferrari-network
+
+  # cAdvisor - Métriques des conteneurs
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:v0.47.0
+    container_name: ferrari-cadvisor
+    ports:
+      - "8082:8080"
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro
+    privileged: true
+    restart: unless-stopped
+    networks:
+      - ferrari-network
+    command:
+      - '--housekeeping_interval=10s'
+      - '--docker_only=true'
+
+networks:
+  ferrari-network:
+    driver: bridge
+
+volumes:
+  postgres-data:
+  airflow-logs:
+  prometheus-data:
+  grafana-data:

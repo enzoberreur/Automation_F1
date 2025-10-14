@@ -1,0 +1,88 @@
+# Configuration des tests de benchmark Ferrari F1 IoT
+
+# ============================================================================
+# ENDPOINTS DES SERVICES
+# ============================================================================
+endpoints:
+  prometheus: 'http://localhost:9090'
+  sensor_simulator: 'http://localhost:8000'
+  stream_processor: 'http://localhost:8001'
+  grafana: 'http://localhost:3000'
+
+# ============================================================================
+# SCÉNARIOS DE TEST
+# ============================================================================
+# Chaque scénario définit un débit cible et une durée
+test_scenarios:
+  - throughput: 500      # Messages par seconde
+    duration: 60         # Durée du test en secondes
+    description: "Test à charge faible"
+  
+  - throughput: 1000     # Messages par seconde
+    duration: 60         # Durée du test en secondes
+    description: "Test à charge normale (objectif projet)"
+  
+  - throughput: 5000     # Messages par seconde
+    duration: 60         # Durée du test en secondes
+    description: "Test à charge élevée (stress test)"
+
+# Scénarios supplémentaires (optionnels)
+# - throughput: 10000
+#   duration: 30
+#   description: "Test de limite maximale"
+
+# ============================================================================
+# SEUILS DE VALIDATION
+# ============================================================================
+# Les tests sont considérés comme réussis si ces seuils sont respectés
+thresholds:
+  # Latence
+  latency_p50_ms: 10           # P50 (médiane) max acceptable
+  latency_p95_ms: 50           # P95 max acceptable
+  latency_p99_ms: 100          # P99 max acceptable
+  latency_mean_ms: 20          # Moyenne max acceptable
+  
+  # Ressources
+  cpu_percent_max: 85          # CPU max avant auto-scaling
+  memory_mb_max: 1024          # Mémoire max (1GB)
+  
+  # Fiabilité
+  success_rate_min: 99.0       # Taux de succès minimum (%)
+  
+  # Détection d'anomalies
+  anomaly_detection_rate_min: 95.0  # Taux de détection minimum (%)
+
+# ============================================================================
+# CONFIGURATION AVANCÉE
+# ============================================================================
+advanced:
+  # Temps d'attente après chaque test (secondes)
+  cooldown_period: 10
+  
+  # Temps d'attente pour stabilisation avant mesures (secondes)
+  warmup_period: 5
+  
+  # Temps d'attente pour collecte des dernières métriques (secondes)
+  metrics_collection_delay: 10
+  
+  # Intervalle de scraping Prometheus (pour calculs)
+  prometheus_scrape_interval: 5
+  
+  # Timeout pour les requêtes HTTP (secondes)
+  http_timeout: 10
+
+# ============================================================================
+# GÉNÉRATION DE RAPPORTS
+# ============================================================================
+reports:
+  # Chemin du rapport Markdown
+  markdown_output: 'docs/benchmarks.md'
+  
+  # Chemin des résultats JSON
+  json_output: 'docs/benchmark_results.json'
+  
+  # Inclure les graphiques ASCII
+  include_ascii_charts: true
+  
+  # Niveau de détail (minimal, standard, detailed)
+  detail_level: 'detailed'

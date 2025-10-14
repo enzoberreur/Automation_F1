@@ -1,0 +1,20 @@
+{
+  "timestamp": "2025-10-14T10:30:00.000000Z",
+  "car_id": "Ferrari-F1-75",
+  "driver": "Charles Leclerc",
+  "lap": 15,
+  "speed_kmh": 305.5,
+  "rpm": 17500,
+  "brake_temp_fl_celsius": 980.5,
+  "brake_temp_fr_celsius": 975.3,
+  "brake_temp_rl_celsius": 960.8,
+  "brake_temp_rr_celsius": 970.2,
+  "tire_temp_fl_celsius": 135.2,
+  "tire_temp_fr_celsius": 133.8,
+  "tire_temp_rl_celsius": 132.5,
+  "tire_temp_rr_celsius": 134.1,
+  "tire_wear_percent": 65.5,
+  "has_anomaly": false,
+  "anomaly_type": null,
+  "anomaly_severity": null
+}

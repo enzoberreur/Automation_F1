@@ -1,0 +1,61 @@
+# Grafana Datasources Configuration
+# Ce fichier configure automatiquement Prometheus comme source de données
+
+apiVersion: 1
+
+# Liste des datasources à configurer
+datasources:
+  # Prometheus - Source principale pour toutes les métriques
+  - name: Prometheus
+    type: prometheus
+    uid: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: true
+    editable: true
+    
+    jsonData:
+      timeInterval: "5s"
+      queryTimeout: "60s"
+      httpMethod: "POST"
+      
+      # Activer les fonctionnalités avancées
+      exemplarTraceIdDestinations: []
+      
+      # Activer l'auto-complétion des métriques
+      disableMetricsLookup: false
+      
+      # Custom query parameters
+      customQueryParameters: ""
+      
+      # Cache settings
+      incrementalQuerying: false
+      incrementalQueryOverlapWindow: "10m"
+    
+    version: 1
+    
+  # PostgreSQL - Pour les données historiques (optionnel)
+  - name: PostgreSQL
+    type: postgres
+    uid: postgres
+    access: proxy
+    url: postgres:5432
+    database: ferrari_f1
+    user: ferrari
+    
+    secureJsonData:
+      password: ferrari
+    
+    jsonData:
+      sslmode: "disable"
+      maxOpenConns: 10
+      maxIdleConns: 10
+      connMaxLifetime: 14400
+      postgresVersion: 1400  # PostgreSQL 14
+      timescaledb: false
+    
+    editable: true
+    version: 1
+
+# Configuration pour le provisioning automatique
+# Ces datasources seront automatiquement créées au démarrage de Grafana

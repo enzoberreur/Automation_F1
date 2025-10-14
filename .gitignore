@@ -1,0 +1,105 @@
+# ============================================================================
+# FERRARI F1 IoT SMART PIT-STOP - .gitignore
+# ============================================================================
+
+# ============================================================================
+# PYTHON
+# ============================================================================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual Environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# ============================================================================
+# DOCKER & CONTAINERS
+# ============================================================================
+# Docker volumes and data
+postgres-data/
+airflow-logs/
+prometheus-data/
+grafana-data/
+
+# Docker Compose overrides
+docker-compose.override.yml
+docker-compose.prod.yml
+
+# ============================================================================
+# MONITORING & LOGS  
+# ============================================================================
+# Application logs
+*.log
+*.log.*
+
+# Airflow database
+airflow.db
+airflow.cfg
+
+# ============================================================================
+# SECURITY & CREDENTIALS
+# ============================================================================
+# Environment files with secrets
+.env.local
+.env.production
+*.key
+*.pem
+*.crt
+credentials.json
+
+# ============================================================================
+# DEVELOPMENT & TESTING
+# ============================================================================
+# IDE settings
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated
+.DS_Store
+Thumbs.db
+
+# Test results
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.backup
+
+# ============================================================================
+# PROJECT SPECIFIC - CLEANED FILES
+# ============================================================================
+# Removed demo/test files (now in .gitignore)
+ferrari-demo.py
+test-telemetry.py
+check-endpoints.py
+ferrari-dashboard.html
