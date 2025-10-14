@@ -1,0 +1,111 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ferrari-f1-ingress
+  namespace: ferrari-f1
+  labels:
+    app.kubernetes.io/name: ferrari-f1
+    app.kubernetes.io/component: ingress
+  annotations:
+    # Pour nginx-ingress
+    kubernetes.io/ingress.class: "nginx"
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    # Pour SSL (optionnel)
+    # cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    # Augmenter les timeouts pour Airflow
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "300"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "300"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
+spec:
+  # Optionnel: Configuration SSL
+  # tls:
+  # - hosts:
+  #   - ferrari-f1.yourdomain.com
+  #   secretName: ferrari-f1-tls
+  
+  rules:
+  # Remplacez par votre domaine ou utilisez l'IP du cluster
+  - host: ferrari-f1.local  # ou votre domaine
+    http:
+      paths:
+      # Grafana Dashboard
+      - path: /grafana
+        pathType: Prefix
+        backend:
+          service:
+            name: grafana-service
+            port:
+              number: 3000
+      
+      # Prometheus Metrics
+      - path: /prometheus
+        pathType: Prefix
+        backend:
+          service:
+            name: prometheus-service
+            port:
+              number: 9090
+      
+      # Airflow Web UI
+      - path: /airflow
+        pathType: Prefix
+        backend:
+          service:
+            name: airflow-service
+            port:
+              number: 8080
+      
+      # Stream Processor API
+      - path: /api
+        pathType: Prefix
+        backend:
+          service:
+            name: stream-processor-service
+            port:
+              number: 8001
+      
+      # Sensor Metrics
+      - path: /metrics
+        pathType: Prefix
+        backend:
+          service:
+            name: sensor-simulator-service
+            port:
+              number: 8000
+      
+      # Default: Redirect to Grafana
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: grafana-service
+            port:
+              number: 3000
+
+---
+# Service LoadBalancer pour accès direct (alternatif à l'ingress)
+apiVersion: v1
+kind: Service
+metadata:
+  name: ferrari-f1-loadbalancer
+  namespace: ferrari-f1
+  labels:
+    app.kubernetes.io/name: ferrari-f1
+    app.kubernetes.io/component: loadbalancer
+spec:
+  type: LoadBalancer
+  selector:
+    app: stream-processor  # Service principal pour les API
+  ports:
+  - name: api
+    port: 8001
+    targetPort: 8001
+    protocol: TCP
+  # Annotations pour cloud providers
+  # annotations:
+  #   # AWS
+  #   service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
+  #   # GCP
+  #   # cloud.google.com/load-balancer-type: "External"
+  #   # Azure
+  #   # service.beta.kubernetes.io/azure-load-balancer-internal: "false"

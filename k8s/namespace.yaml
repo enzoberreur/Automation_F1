@@ -1,0 +1,138 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ferrari-f1
+  labels:
+    app.kubernetes.io/name: ferrari-f1
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/component: namespace
+    app.kubernetes.io/part-of: ferrari-f1-iot
+    environment: production
+    project: ferrari-f1-iot
+    
+---
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: ferrari-f1-quota
+  namespace: ferrari-f1
+spec:
+  hard:
+    # Limites de ressources pour éviter la surcharge
+    requests.cpu: "4"      # 4 CPU cores max
+    requests.memory: 8Gi   # 8GB RAM max
+    limits.cpu: "8"        # 8 CPU cores max burst
+    limits.memory: 16Gi    # 16GB RAM max burst
+    
+    # Limites d'objets
+    pods: "20"             # 20 pods max
+    services: "10"         # 10 services max
+    persistentvolumeclaims: "5"  # 5 PVCs max
+    
+---
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: ferrari-f1-limits
+  namespace: ferrari-f1
+spec:
+  limits:
+  - type: Container
+    default:
+      # Limites par défaut pour chaque container
+      cpu: 500m
+      memory: 1Gi
+    defaultRequest:
+      # Requests par défaut pour chaque container  
+      cpu: 100m
+      memory: 256Mi
+    max:
+      # Limites maximales par container
+      cpu: 2
+      memory: 4Gi
+    min:
+      # Limites minimales par container
+      cpu: 50m
+      memory: 64Mi
+      
+---
+# Network Policy pour sécuriser les communications
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: ferrari-f1-netpol
+  namespace: ferrari-f1
+spec:
+  podSelector: {}  # Applique à tous les pods du namespace
+  policyTypes:
+  - Ingress
+  - Egress
+  
+  ingress:
+  # Autoriser le trafic entre les pods Ferrari F1
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: ferrari-f1
+  # Autoriser le trafic depuis l'ingress controller
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: ingress-nginx
+  # Autoriser le trafic externe sur les ports web
+  - ports:
+    - protocol: TCP
+      port: 3000  # Grafana
+    - protocol: TCP
+      port: 8080  # Airflow
+    - protocol: TCP
+      port: 9090  # Prometheus
+    - protocol: TCP
+      port: 8001  # Stream Processor
+    - protocol: TCP
+      port: 8000  # Sensor Metrics
+      
+  egress:
+  # Autoriser tout le trafic sortant (DNS, registries, etc.)
+  - {}
+
+---
+# Service Account avec permissions appropriées
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: ferrari-f1-sa
+  namespace: ferrari-f1
+  labels:
+    app.kubernetes.io/name: ferrari-f1
+    app.kubernetes.io/component: serviceaccount
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: ferrari-f1-role
+  namespace: ferrari-f1
+rules:
+# Permissions pour Airflow (gestion des pods/jobs)
+- apiGroups: [""]
+  resources: ["pods", "pods/log"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["batch"]
+  resources: ["jobs"]
+  verbs: ["get", "list", "watch", "create", "delete"]
+  
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: ferrari-f1-rolebinding
+  namespace: ferrari-f1
+subjects:
+- kind: ServiceAccount
+  name: ferrari-f1-sa
+  namespace: ferrari-f1
+roleRef:
+  kind: Role
+  name: ferrari-f1-role
+  apiGroup: rbac.authorization.k8s.io

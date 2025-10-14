@@ -1,0 +1,117 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ferrari-f1-config
+  namespace: ferrari-f1
+  labels:
+    app.kubernetes.io/name: ferrari-f1
+    app.kubernetes.io/component: config
+data:
+  # Configuration globale du projet
+  TELEMETRY_MODE: "http"
+  
+  # URLs des services internes
+  STREAM_PROCESSOR_URL: "http://stream-processor:8001"
+  PROMETHEUS_URL: "http://prometheus:9090"
+  GRAFANA_URL: "http://grafana:3000"
+  AIRFLOW_URL: "http://airflow-webserver:8080"
+  
+  # Configuration de la simulation
+  TELEMETRY_FREQUENCY: "100"  # Messages par seconde
+  CIRCUIT_NAME: "Monza"
+  LAP_TIME_SECONDS: "80"
+  
+  # Configuration Prometheus
+  PROMETHEUS_RETENTION: "15d"
+  PROMETHEUS_STORAGE_SIZE: "10Gi"
+  
+  # Configuration Grafana
+  GRAFANA_ADMIN_USER: "admin"
+  GF_SECURITY_ADMIN_PASSWORD: "ferrari123"
+  GF_INSTALL_PLUGINS: "grafana-clock-panel,grafana-simple-json-datasource"
+  
+  # Configuration Airflow
+  AIRFLOW_EXECUTOR: "LocalExecutor"
+  AIRFLOW_LOAD_EXAMPLES: "false"
+  
+  # Configuration réseau
+  NETWORK_MODE: "cluster"
+  
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: ferrari-f1-secrets
+  namespace: ferrari-f1
+  labels:
+    app.kubernetes.io/name: ferrari-f1
+    app.kubernetes.io/component: secrets
+type: Opaque
+data:
+  # Mots de passe encodés en base64
+  # echo -n 'ferrari123' | base64
+  grafana-admin-password: ZmVycmFyaTEyMw==
+  
+  # echo -n 'airflow123' | base64
+  airflow-admin-password: YWlyZmxvdzEyMw==
+  
+  # echo -n 'postgres' | base64
+  postgres-password: cG9zdGdyZXM=
+  
+  # API Keys (générées aléatoirement pour la démo)
+  # echo -n 'f1-api-key-2024-ferrari' | base64
+  api-key: ZjEtYXBpLWtleS0yMDI0LWZlcnJhcmk=
+
+---
+# PersistentVolumeClaim pour Prometheus
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: prometheus-storage
+  namespace: ferrari-f1
+  labels:
+    app.kubernetes.io/name: ferrari-f1
+    app.kubernetes.io/component: storage
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+  storageClassName: hostpath  # StorageClass par défaut Docker Desktop
+
+---
+# PersistentVolumeClaim pour Grafana
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: grafana-storage
+  namespace: ferrari-f1
+  labels:
+    app.kubernetes.io/name: ferrari-f1
+    app.kubernetes.io/component: storage
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 2Gi
+  storageClassName: hostpath  # StorageClass par défaut Docker Desktop
+
+---
+# PersistentVolumeClaim pour PostgreSQL (Airflow)
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: postgres-storage
+  namespace: ferrari-f1
+  labels:
+    app.kubernetes.io/name: ferrari-f1
+    app.kubernetes.io/component: storage
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+  storageClassName: hostpath  # StorageClass par défaut Docker Desktop

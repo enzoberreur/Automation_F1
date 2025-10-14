@@ -1,0 +1,428 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "🏆 Ferrari F1 IoT - Ultimate Race Command Center",
+    "tags": ["ferrari", "f1", "ultimate", "command-center"],
+    "style": "dark",
+    "timezone": "",
+    "panels": [
+      {
+        "id": 1,
+        "title": "🏎️ Ferrari Global Performance Score",
+        "type": "gauge",
+        "targets": [
+          {
+            "expr": "(\n  ((ferrari_simulator_messages_sent_total / ferrari_simulator_messages_generated_total) * 25) +\n  ((1 - (rate(ferrari_simulator_send_errors_total[5m]) / rate(ferrari_simulator_messages_generated_total[5m]))) * 25) +\n  ((1 / (histogram_quantile(0.95, rate(ferrari_simulator_send_latency_seconds_bucket[5m])) + 0.001)) * 25) +\n  (rate(ferrari_messages_received_total[5m]) * 25)\n)",
+            "legendFormat": "Performance Score"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "min": 0,
+            "max": 100,
+            "thresholds": {
+              "steps": [
+                {"color": "red", "value": 0},
+                {"color": "orange", "value": 60},
+                {"color": "yellow", "value": 75},
+                {"color": "green", "value": 85},
+                {"color": "blue", "value": 95}
+              ]
+            }
+          }
+        },
+        "gridPos": {"h": 12, "w": 8, "x": 0, "y": 0}
+      },
+      {
+        "id": 2,
+        "title": "📊 Live Ferrari F1 Telemetry Stream",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "ferrari_messages_received_total",
+            "legendFormat": "📥 Total Messages"
+          },
+          {
+            "expr": "rate(ferrari_messages_received_total[1m]) * 60",
+            "legendFormat": "⚡ Messages/Min"
+          },
+          {
+            "expr": "ferrari_anomalies_detected_total",
+            "legendFormat": "🚨 Anomalies"
+          },
+          {
+            "expr": "ferrari_pitstop_recommendations_total",
+            "legendFormat": "🏁 Pitstop Alerts"
+          },
+          {
+            "expr": "histogram_quantile(0.95, rate(ferrari_simulator_send_latency_seconds_bucket[1m])) * 1000",
+            "legendFormat": "⏱️ P95 Latency (ms)"
+          },
+          {
+            "expr": "(ferrari_simulator_messages_sent_total / ferrari_simulator_messages_generated_total) * 100",
+            "legendFormat": "✅ Success Rate %"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "color": {"mode": "palette-classic"},
+            "custom": {
+              "displayMode": "basic"
+            }
+          }
+        },
+        "gridPos": {"h": 12, "w": 8, "x": 8, "y": 0}
+      },
+      {
+        "id": 3,
+        "title": "🔥 System Health & Risk Assessment",
+        "type": "piechart",
+        "targets": [
+          {
+            "expr": "ferrari_simulator_messages_sent_total",
+            "legendFormat": "✅ Successful Operations"
+          },
+          {
+            "expr": "ferrari_simulator_send_errors_total",
+            "legendFormat": "❌ Failed Operations"
+          },
+          {
+            "expr": "ferrari_anomalies_detected_total",
+            "legendFormat": "🚨 Detected Issues"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "custom": {
+              "hideFrom": {
+                "legend": false,
+                "tooltip": false,
+                "vis": false
+              }
+            }
+          }
+        },
+        "gridPos": {"h": 12, "w": 8, "x": 16, "y": 0}
+      },
+      {
+        "id": 4,
+        "title": "⚡ Ferrari F1 Performance Metrics (Real-Time)",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "rate(ferrari_messages_received_total[1m])",
+            "legendFormat": "📊 Message Throughput (msg/s)"
+          },
+          {
+            "expr": "histogram_quantile(0.50, rate(ferrari_simulator_send_latency_seconds_bucket[1m])) * 1000",
+            "legendFormat": "🎯 P50 Latency (ms)"
+          },
+          {
+            "expr": "histogram_quantile(0.95, rate(ferrari_simulator_send_latency_seconds_bucket[1m])) * 1000",
+            "legendFormat": "🚀 P95 Latency (ms)"
+          },
+          {
+            "expr": "rate(ferrari_simulator_send_errors_total[1m]) * 100",
+            "legendFormat": "❌ Error Rate (%)"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "custom": {
+              "drawStyle": "line",
+              "lineWidth": 3,
+              "fillOpacity": 15,
+              "showPoints": "never"
+            }
+          },
+          "overrides": [
+            {
+              "matcher": {"id": "byName", "options": "📊 Message Throughput (msg/s)"},
+              "properties": [{"id": "color", "value": {"fixedColor": "green", "mode": "fixed"}}]
+            },
+            {
+              "matcher": {"id": "byName", "options": "❌ Error Rate (%)"},
+              "properties": [{"id": "color", "value": {"fixedColor": "red", "mode": "fixed"}}]
+            }
+          ]
+        },
+        "gridPos": {"h": 8, "w": 24, "x": 0, "y": 12}
+      },
+      {
+        "id": 5,
+        "title": "🏁 Ferrari Race Strategy Intelligence",
+        "type": "table",
+        "targets": [
+          {
+            "expr": "ferrari_messages_received_total",
+            "legendFormat": "Total Telemetry Points",
+            "format": "table"
+          },
+          {
+            "expr": "ferrari_anomalies_detected_total",
+            "legendFormat": "Critical Anomalies",
+            "format": "table"
+          },
+          {
+            "expr": "ferrari_pitstop_recommendations_total",
+            "legendFormat": "Strategy Alerts",
+            "format": "table"
+          },
+          {
+            "expr": "rate(ferrari_messages_received_total[5m]) * 300",
+            "legendFormat": "5min Data Volume",
+            "format": "table"
+          },
+          {
+            "expr": "(ferrari_simulator_messages_sent_total / ferrari_simulator_messages_generated_total) * 100",
+            "legendFormat": "System Reliability %",
+            "format": "table"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "custom": {
+              "displayMode": "color-background",
+              "width": 150
+            },
+            "thresholds": {
+              "steps": [
+                {"color": "green", "value": 0},
+                {"color": "yellow", "value": 50},
+                {"color": "orange", "value": 75},
+                {"color": "red", "value": 90}
+              ]
+            }
+          }
+        },
+        "gridPos": {"h": 6, "w": 12, "x": 0, "y": 20}
+      },
+      {
+        "id": 6,
+        "title": "🔮 Predictive Analytics & Forecasting",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "rate(ferrari_messages_received_total[1m])",
+            "legendFormat": "📊 Current Load"
+          },
+          {
+            "expr": "predict_linear(rate(ferrari_messages_received_total[1m])[5m:], 300)",
+            "legendFormat": "🔮 5min Forecast"
+          },
+          {
+            "expr": "quantile_over_time(0.95, rate(ferrari_messages_received_total[1m])[10m:])",
+            "legendFormat": "📈 Peak Capacity (P95)"
+          },
+          {
+            "expr": "avg_over_time(rate(ferrari_messages_received_total[1m])[15m:])",
+            "legendFormat": "📊 15min Average"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "custom": {
+              "drawStyle": "line",
+              "lineWidth": 2
+            }
+          },
+          "overrides": [
+            {
+              "matcher": {"id": "byRegexp", "options": ".*Forecast.*"},
+              "properties": [
+                {"id": "custom.lineStyle", "value": {"dash": [10, 10]}},
+                {"id": "color", "value": {"fixedColor": "purple", "mode": "fixed"}}
+              ]
+            }
+          ]
+        },
+        "gridPos": {"h": 6, "w": 12, "x": 12, "y": 20}
+      },
+      {
+        "id": 7,
+        "title": "🎛️ Ferrari F1 Advanced System Analytics",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "((rate(ferrari_messages_received_total[1m]) * 60) / 100) * 100",
+            "legendFormat": "🏎️ Performance Index"
+          },
+          {
+            "expr": "((ferrari_simulator_messages_sent_total / ferrari_simulator_messages_generated_total) * 100)",
+            "legendFormat": "✅ Reliability Score"
+          },
+          {
+            "expr": "(1 - (ferrari_anomalies_detected_total / greatest(ferrari_messages_received_total, 1))) * 100",
+            "legendFormat": "🛡️ Quality Index"
+          },
+          {
+            "expr": "(1 / (histogram_quantile(0.95, rate(ferrari_simulator_send_latency_seconds_bucket[1m])) + 0.001)) * 50",
+            "legendFormat": "⚡ Speed Score"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "min": 0,
+            "max": 100,
+            "custom": {
+              "drawStyle": "line",
+              "lineWidth": 3,
+              "fillOpacity": 20
+            }
+          }
+        },
+        "gridPos": {"h": 8, "w": 24, "x": 0, "y": 26}
+      },
+      {
+        "id": 8,
+        "title": "🔥 Ferrari F1 Heat Analysis & Performance Distribution",
+        "type": "heatmap",
+        "targets": [
+          {
+            "expr": "rate(ferrari_simulator_send_latency_seconds_bucket[2m])",
+            "format": "heatmap",
+            "legendFormat": "{{le}}"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "custom": {
+              "fillOpacity": 80,
+              "hideFrom": {
+                "legend": false,
+                "tooltip": false,
+                "vis": false
+              }
+            }
+          }
+        },
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 34}
+      },
+      {
+        "id": 9,
+        "title": "📈 Ferrari Performance Percentiles Analysis",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.50, rate(ferrari_simulator_send_latency_seconds_bucket[1m])) * 1000",
+            "legendFormat": "P50 (Median)"
+          },
+          {
+            "expr": "histogram_quantile(0.75, rate(ferrari_simulator_send_latency_seconds_bucket[1m])) * 1000",
+            "legendFormat": "P75"
+          },
+          {
+            "expr": "histogram_quantile(0.90, rate(ferrari_simulator_send_latency_seconds_bucket[1m])) * 1000",
+            "legendFormat": "P90"
+          },
+          {
+            "expr": "histogram_quantile(0.95, rate(ferrari_simulator_send_latency_seconds_bucket[1m])) * 1000",
+            "legendFormat": "P95"
+          },
+          {
+            "expr": "histogram_quantile(0.99, rate(ferrari_simulator_send_latency_seconds_bucket[1m])) * 1000",
+            "legendFormat": "P99 (Critical)"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "ms",
+            "custom": {
+              "drawStyle": "bars",
+              "fillOpacity": 80
+            }
+          }
+        },
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 34}
+      },
+      {
+        "id": 10,
+        "title": "🚨 Ferrari F1 Intelligent Alerting & SLA Monitoring",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "up{job=\"sensor-simulator\"}",
+            "legendFormat": "🏎️ Sensor Status"
+          },
+          {
+            "expr": "up{job=\"stream-processor\"}",
+            "legendFormat": "⚡ Processor Status"
+          },
+          {
+            "expr": "(rate(ferrari_messages_received_total[5m]) > 0.1) * 100",
+            "legendFormat": "📊 SLA Compliance %"
+          },
+          {
+            "expr": "((time() - process_start_time_seconds) / 3600)",
+            "legendFormat": "⏰ Uptime (hours)"
+          },
+          {
+            "expr": "(1 - (rate(ferrari_simulator_send_errors_total[5m]) / rate(ferrari_simulator_messages_generated_total[5m]))) * 100",
+            "legendFormat": "🛡️ Service Health %"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "thresholds": {
+              "steps": [
+                {"color": "red", "value": 0},
+                {"color": "yellow", "value": 80},
+                {"color": "green", "value": 95}
+              ]
+            },
+            "custom": {
+              "displayMode": "color-background"
+            }
+          }
+        },
+        "gridPos": {"h": 6, "w": 24, "x": 0, "y": 42}
+      },
+      {
+        "id": 11,
+        "title": "🎯 Ferrari F1 Business Impact & ROI Metrics",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "ferrari_messages_received_total / 1000",
+            "legendFormat": "📊 Data Points (K)"
+          },
+          {
+            "expr": "(ferrari_simulator_messages_sent_total / ferrari_simulator_messages_generated_total) * ferrari_messages_received_total / 1000",
+            "legendFormat": "✅ Quality Data (K)"
+          },
+          {
+            "expr": "ferrari_anomalies_detected_total",
+            "legendFormat": "🚨 Issues Prevented"
+          },
+          {
+            "expr": "ferrari_pitstop_recommendations_total * 10",
+            "legendFormat": "💰 Strategy Value (x10)"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "custom": {
+              "drawStyle": "line",
+              "lineWidth": 2,
+              "fillOpacity": 15
+            }
+          }
+        },
+        "gridPos": {"h": 8, "w": 24, "x": 0, "y": 48}
+      }
+    ],
+    "time": {
+      "from": "now-30m",
+      "to": "now"
+    },
+    "refresh": "5s",
+    "schemaVersion": 37,
+    "version": 0,
+    "uid": "ferrari-f1-ultimate-command-center"
+  },
+  "overwrite": true
+}

@@ -102,7 +102,7 @@ ferrari_simulator_send_errors_total     # Erreurs de transmission
 
 | **Layer** | **Technologies** | **Rôle** |
 |-----------|------------------|-----------|
-| **Ingestion** | FastAPI, HTTP, Kafka-ready | Collecte télémétrie haute fréquence |
+| **Ingestion** | FastAPI, HTTP | Collecte télémétrie haute fréquence |
 | **Processing** | Python, Asyncio, Pydantic | Traitement temps réel + détection anomalies |
 | **Storage** | PostgreSQL, Redis | Persistance données + cache |
 | **Monitoring** | Prometheus, cAdvisor, Grafana | Observabilité complète infrastructure |
@@ -114,7 +114,7 @@ ferrari_simulator_send_errors_total     # Erreurs de transmission
 
 #### **🏎️ Sensor Simulator**
 - **Rôle** : Génère télémétrie réaliste Ferrari F1 (320 km/h, 15800 RPM, etc.)
-- **Protocoles** : HTTP POST, Kafka-ready
+- **Protocoles** : HTTP POST
 - **Métriques** : Prometheus sur `:8000/metrics`
 - **Volume** : 1000+ messages/seconde
 
@@ -382,7 +382,7 @@ of this software and associated documentation files...
 ## 🙏 **REMERCIEMENTS**
 
 - **Scuderia Ferrari** - Pour l'inspiration technique  
-- **Apache Foundation** - Airflow, Kafka ecosystems
+- **Apache Foundation** - Airflow ecosystem
 - **Prometheus & Grafana Labs** - Observability stack
 - **CNCF** - Kubernetes & cloud-native technologies
 
