@@ -30,7 +30,7 @@ start: ## 🚀 Démarrage complet Ferrari F1 IoT
 	@echo ""
 	@echo "✅ Ferrari F1 IoT démarré avec succès!"
 	@echo ""
-	@$(MAKE) dashboard
+	@$(MAKE) show-all-urls
 
 stop: ## 🛑 Arrêt complet du système
 	@echo "🛑 FERRARI F1 IoT - ARRÊT COMPLET"
@@ -58,12 +58,22 @@ status: ## 📊 État du système Ferrari F1
 	@echo "🔗 Accès:"
 	@echo "  Dashboard: make dashboard"
 
-dashboard: ## 🏆 Ferrari F1 ULTIMATE Dashboard
-	@echo "🏆 FERRARI F1 ULTIMATE COMMAND CENTER"
-	@echo "===================================="
+dashboard: ## 🏆 Ferrari F1 Dashboard
+	@echo "🌡️ FERRARI F1 DASHBOARD"
+	@echo "======================="
 	@echo ""
-	@echo "🔗 Dashboard: http://localhost:3000/d/ferrari-f1-ultimate-command-center"
+	@echo "🔗 Dashboard: http://localhost:3000/d/ferrari-f1-dashboard"
 	@echo "🔐 Login: admin / admin"
+	@echo ""
+	@echo "🔥 NOUVELLES VISUALISATIONS DISPONIBLES :"
+	@echo "┌─────────────────────────────────────────────────────────┐"
+	@echo "│ 🌡️ Thermal Performance Flow - Simulation temps réel    │"
+	@echo "│ ⚡ Energy Flow Heatmap - Flux énergétique              │"
+	@echo "│ 🏁 Performance Radar - Vue multidimensionnelle         │"
+	@echo "│ 🔮 Predictive Pit-Stop - Stratégie intelligente       │"
+	@echo "│ 📈 Real-Time Efficiency Score - Global 0-100          │"
+	@echo "│ 🚨 System Thermal Load - Monitoring charge            │"
+	@echo "└─────────────────────────────────────────────────────────┘"
 	@echo ""
 	@echo "📊 MÉTRIQUES TEMPS RÉEL:"
 	@$(MAKE) show-stats 2>/dev/null || echo "Démarrez avec: make start"
@@ -122,6 +132,34 @@ show-stats: ## Affichage métriques (interne)
 	LATENCY=$$(curl -s "http://localhost:8000/metrics" 2>/dev/null | awk '/ferrari_simulator_send_latency_seconds_sum/ {sum=$$2} /ferrari_simulator_send_latency_seconds_count/ {count=$$2} END {if(sum && count) printf "%.2f ms", (sum/count)*1000; else print "N/A"}'); \
 	THROUGHPUT=$$(curl -s "http://localhost:8000/metrics" 2>/dev/null | grep "ferrari_simulator_current_throughput" | awk '{print $$2}' || echo "0"); \
 	echo "🏎️ Messages: $$MESSAGES | ⚡ Latence: $$LATENCY | 📊 Throughput: $$THROUGHPUT msg/s"
+
+show-all-urls: ## Affichage de toutes les URLs d'accès (interne)
+	@echo "🌟 FERRARI F1 IoT - ACCÈS COMPLET"
+	@echo "================================="
+	@echo ""
+	@echo "📊 DASHBOARDS & MONITORING:"
+	@echo "┌─────────────────────────────────────────────────────────────────┐"
+	@echo "│ 🏆 Grafana Dashboard:  http://localhost:3000                   │"
+	@echo "│ 📈 Prometheus:         http://localhost:9090                   │"
+	@echo "│ 📊 cAdvisor:           http://localhost:8080                   │"
+	@echo "│ 🔄 Airflow:            http://localhost:8081                   │"
+	@echo "└─────────────────────────────────────────────────────────────────┘"
+	@echo ""
+	@echo "🏎️ FERRARI F1 SERVICES:"
+	@echo "┌─────────────────────────────────────────────────────────────────┐"
+	@echo "│ 🏁 Stream Processor:   http://localhost:8001                   │"
+	@echo "│ 📡 Sensor Metrics:     http://localhost:8000/metrics           │"
+	@echo "│ ❤️  Health Check:       http://localhost:8001/health            │"
+	@echo "│ 📊 Stats API:          http://localhost:8001/stats             │"
+	@echo "└─────────────────────────────────────────────────────────────────┘"
+	@echo ""
+	@echo "🔐 CREDENTIALS:"
+	@echo "• Grafana: admin / admin"
+	@echo "• Airflow: admin / admin"
+	@echo ""
+	@$(MAKE) show-stats 2>/dev/null || echo "Services en cours de démarrage..."
+	@echo ""
+	@echo "🎯 ACCÈS RAPIDE DASHBOARD: make dashboard"
 
 grafana-ultimate: ## 🏆 Accès au Ferrari F1 ULTIMATE Command Center
 	@echo "🏆 FERRARI F1 ULTIMATE COMMAND CENTER"

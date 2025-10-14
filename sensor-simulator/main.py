@@ -42,7 +42,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # ============================================================================
-# MÉTRIQUES PROMETHEUS
+# MÉTRIQUES PROMETHEUS - FERRARI F1 THERMAL COCKPIT
 # ============================================================================
 if PROMETHEUS_AVAILABLE:
     # Compteurs
@@ -72,6 +72,37 @@ if PROMETHEUS_AVAILABLE:
         'ferrari_simulator_current_throughput_msg_per_sec',
         'Débit actuel en messages par seconde'
     )
+    
+    # === MÉTRIQUES THERMAL COCKPIT DASHBOARD ===
+    
+    # Températures Freins (4 roues)
+    brake_temp_fl = Gauge('ferrari_simulator_brake_temp_fl_celsius', 'Température frein avant gauche')
+    brake_temp_fr = Gauge('ferrari_simulator_brake_temp_fr_celsius', 'Température frein avant droit')
+    brake_temp_rl = Gauge('ferrari_simulator_brake_temp_rl_celsius', 'Température frein arrière gauche')
+    brake_temp_rr = Gauge('ferrari_simulator_brake_temp_rr_celsius', 'Température frein arrière droit')
+    
+    # Températures Pneus (4 roues)
+    tire_temp_fl = Gauge('ferrari_simulator_tire_temp_fl_celsius', 'Température pneu avant gauche')
+    tire_temp_fr = Gauge('ferrari_simulator_tire_temp_fr_celsius', 'Température pneu avant droit')
+    tire_temp_rl = Gauge('ferrari_simulator_tire_temp_rl_celsius', 'Température pneu arrière gauche')
+    tire_temp_rr = Gauge('ferrari_simulator_tire_temp_rr_celsius', 'Température pneu arrière droit')
+    
+    # Performance & Moteur
+    engine_temp = Gauge('ferrari_simulator_engine_temp_celsius', 'Température moteur')
+    speed_kmh = Gauge('ferrari_simulator_speed_kmh', 'Vitesse en km/h')
+    rpm = Gauge('ferrari_simulator_rpm', 'Régime moteur RPM')
+    throttle_percent = Gauge('ferrari_simulator_throttle_percent', 'Position accélérateur %')
+    
+    # Systèmes Électroniques
+    ers_power_kw = Gauge('ferrari_simulator_ers_power_kw', 'Puissance ERS en kW')
+    fuel_remaining_kg = Gauge('ferrari_simulator_fuel_remaining_kg', 'Carburant restant en kg')
+    
+    # Pneus & Stratégie
+    tire_wear_percent = Gauge('ferrari_simulator_tire_wear_percent', 'Usure pneus en %')
+    lap_number = Gauge('ferrari_simulator_lap', 'Numéro de tour actuel')
+    
+    # Freinage
+    brake_pressure_bar = Gauge('ferrari_simulator_brake_pressure_bar', 'Pression freinage en bar')
 else:
     # Mock objects si Prometheus n'est pas disponible
     messages_generated = None
@@ -79,6 +110,13 @@ else:
     send_errors = None
     send_latency = None
     current_throughput = None
+    
+    # Mock objects pour métriques thermiques
+    brake_temp_fl = brake_temp_fr = brake_temp_rl = brake_temp_rr = None
+    tire_temp_fl = tire_temp_fr = tire_temp_rl = tire_temp_rr = None
+    engine_temp = speed_kmh = rpm = throttle_percent = None
+    ers_power_kw = fuel_remaining_kg = tire_wear_percent = None
+    lap_number = brake_pressure_bar = None
 
 
 @dataclass
@@ -332,6 +370,14 @@ class MetricsCollector:
         with self.lock:
             self.messages_sent += 1
             self.total_latency += latency
+            # Mettre à jour la jauge Prometheus immédiatement
+            try:
+                if PROMETHEUS_AVAILABLE and current_throughput is not None:
+                    elapsed = time.time() - self.start_time
+                    throughput = self.messages_sent / elapsed if elapsed > 0 else 0
+                    current_throughput.set(round(throughput, 2))
+            except Exception:
+                pass
     
     def record_failure(self):
         """Enregistre un échec d'envoi"""
@@ -345,6 +391,15 @@ class MetricsCollector:
             throughput = self.messages_sent / elapsed if elapsed > 0 else 0
             avg_latency = self.total_latency / self.messages_sent if self.messages_sent > 0 else 0
             
+            # Mettre à jour la jauge Prometheus si disponible
+            try:
+                if PROMETHEUS_AVAILABLE and current_throughput is not None:
+                    # current_throughput attend un float en msg/s
+                    current_throughput.set(round(throughput, 2))
+            except Exception:
+                # Ne pas faire échouer le collecteur si la mise à jour Prometheus plante
+                pass
+
             return {
                 "messages_sent": self.messages_sent,
                 "messages_failed": self.messages_failed,
@@ -392,6 +447,44 @@ class HTTPPublisher:
         """Initialise la session HTTP"""
         self.session = aiohttp.ClientSession()
     
+    def update_thermal_metrics(self, data: TelemetryData):
+        """Met à jour toutes les métriques pour le Thermal Cockpit Dashboard"""
+        if not PROMETHEUS_AVAILABLE:
+            return
+        
+        try:
+            # Températures Freins
+            if brake_temp_fl: brake_temp_fl.set(data.brake_temp_fl_celsius)
+            if brake_temp_fr: brake_temp_fr.set(data.brake_temp_fr_celsius)
+            if brake_temp_rl: brake_temp_rl.set(data.brake_temp_rl_celsius)
+            if brake_temp_rr: brake_temp_rr.set(data.brake_temp_rr_celsius)
+            
+            # Températures Pneus
+            if tire_temp_fl: tire_temp_fl.set(data.tire_temp_fl_celsius)
+            if tire_temp_fr: tire_temp_fr.set(data.tire_temp_fr_celsius)
+            if tire_temp_rl: tire_temp_rl.set(data.tire_temp_rl_celsius)
+            if tire_temp_rr: tire_temp_rr.set(data.tire_temp_rr_celsius)
+            
+            # Performance & Moteur
+            if engine_temp: engine_temp.set(data.engine_temp_celsius)
+            if speed_kmh: speed_kmh.set(data.speed_kmh)
+            if rpm: rpm.set(data.rpm)
+            if throttle_percent: throttle_percent.set(data.throttle_percent)
+            
+            # Systèmes Électroniques
+            if ers_power_kw: ers_power_kw.set(data.ers_power_kw)
+            if fuel_remaining_kg: fuel_remaining_kg.set(data.fuel_remaining_kg)
+            
+            # Pneus & Stratégie
+            if tire_wear_percent: tire_wear_percent.set(data.tire_wear_percent)
+            if lap_number: lap_number.set(data.lap)
+            
+            # Freinage
+            if brake_pressure_bar: brake_pressure_bar.set(data.brake_pressure_bar)
+            
+        except Exception as e:
+            logger.debug(f"Erreur mise à jour métriques thermiques: {e}")
+    
     async def send(self, data: TelemetryData) -> float:
         """Envoie des données via HTTP POST et retourne la latence"""
         if not self.session:
@@ -403,6 +496,9 @@ class HTTPPublisher:
         # Incrémenter le compteur de messages générés
         if messages_generated:
             messages_generated.inc()
+        
+        # Mise à jour des métriques individuelles pour Thermal Cockpit Dashboard
+        self.update_thermal_metrics(data)
         
         try:
             with send_latency.time() if send_latency else nullcontext():

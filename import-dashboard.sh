@@ -39,16 +39,54 @@ if [ $timeout -le 0 ]; then
     exit 1
 fi
 
+check_dashboard_exists() {
+    local dashboard_uid=$1
+    local dashboard_name=$2
+    
+    response=$(curl -s -u admin:admin "http://localhost:3000/api/dashboards/uid/$dashboard_uid")
+    
+    if echo "$response" | grep -q '"dashboard"'; then
+        log "✅ $dashboard_name existe déjà (pas de re-import)"
+        return 0
+    else
+        return 1
+    fi
+}
+
 import_dashboard() {
     local dashboard_file=$1
     local dashboard_name=$2
+    local expected_uid=$3
+    
+    # Vérifier si le dashboard existe déjà
+    if [ -n "$expected_uid" ] && check_dashboard_exists "$expected_uid" "$dashboard_name"; then
+        if [ "$SILENT" != "--silent" ]; then
+            echo "🔗 $dashboard_name: http://localhost:3000/d/$expected_uid"
+        fi
+        return 0
+    fi
     
     log "📊 Import du $dashboard_name..."
+
+    # Préparer le payload : Grafana accepte {"dashboard": <dashboard>, "overwrite": true}
+    # Si le fichier contient déjà la clé "dashboard", on l'utilise tel quel.
+    payload=$(mktemp)
+    python3 - "$dashboard_file" > "$payload" <<'PY'
+import json,sys
+f=sys.argv[1]
+obj=json.load(open(f))
+if isinstance(obj, dict) and 'dashboard' in obj:
+    print(json.dumps(obj))
+else:
+    print(json.dumps({'dashboard': obj, 'overwrite': True}))
+PY
+
     response=$(curl -s -X POST \
       http://localhost:3000/api/dashboards/db \
       -H 'Content-Type: application/json' \
       -u admin:admin \
-      -d @$dashboard_file)
+      -d @"$payload")
+    rm -f "$payload"
     
     # Vérifier si l'import a réussi
     if echo "$response" | grep -q '"status":"success"'; then
@@ -66,35 +104,31 @@ import_dashboard() {
         return 0
     else
         log "❌ Erreur lors de l'import du $dashboard_name"
+        if [ "$SILENT" != "--silent" ]; then
+            echo "API response: $response"
+        fi
         return 1
     fi
 }
 
-# Import du dashboard ULTIMATE
-log "🏆 Import du dashboard ULTIMATE Ferrari F1 Command Center"
-import_dashboard "monitoring/ferrari_f1_ultimate_dashboard.json" "Ferrari F1 Ultimate Command Center"
-
-# Import du dashboard standard comme backup
-if [ -f "monitoring/grafana_dashboard.json" ]; then
-    log ""
-    log "📊 Import du dashboard standard (backup)"
-    import_dashboard "monitoring/grafana_dashboard.json" "Ferrari F1 Standard Dashboard"
-fi
+# Import du dashboard Thermal Demo avec vérification d'existence
+log "📊 Import du dashboard Ferrari F1 Monitoring"
+import_dashboard "monitoring/grafana_dashboard.json" "Ferrari F1 IoT - Smart Pit Stop Monitoring Dashboard" "ferrari-f1-dashboard"
 
 log ""
 if [ "$SILENT" != "--silent" ]; then
-    echo "� FERRARI F1 ULTIMATE COMMAND CENTER PRÊT!"
+    echo "🌡️ FERRARI F1 THERMAL COCKPIT DEMO PRÊT!"
     echo "┌─────────────────────────────────────────────────────────┐"
-    echo "│ 🏆 Ultimate Dashboard: http://localhost:3000/d/ferr... │"
-    echo "│ 📊 Standard Backup:    http://localhost:3000/d/278...  │"
-    echo "│ 🔐 Login:              admin / admin                   │"
+    echo "│ 🌡️ Thermal Demo:       http://localhost:3000/d/ferr... │"
+    echo "│ 🏆 Ultimate Backup:     http://localhost:3000/d/278...  │"
+    echo "│ 🔐 Login:               admin / admin                   │"
     echo "│                                                         │"
-    echo "│ 🎯 ULTIMATE FEATURES:                                  │"
-    echo "│ • 📊 Real-time telemetry monitoring                    │"
-    echo "│ • 🔮 Predictive analytics & forecasting               │"
-    echo "│ • 🏁 Race strategy intelligence                        │"
-    echo "│ • 🚨 Advanced alerting & SLA monitoring               │"
-    echo "│ • � Performance heat analysis                         │"
-    echo "│ • 💰 Business impact & ROI tracking                   │"
+    echo "│ 🔥 THERMAL COCKPIT FEATURES (DEMO):                    │"
+    echo "│ • 🌡️ Thermal performance simulation                   │"
+    echo "│ • ⚡ Energy flow heatmap                               │"
+    echo "│ • 🏁 Performance radar (4 dimensions)                 │"
+    echo "│ • 🔮 Predictive pit-stop strategy                     │"
+    echo "│ • 📈 Real-time efficiency score (0-100)              │"
+    echo "│ • 🚨 System thermal load monitoring                   │"
     echo "└─────────────────────────────────────────────────────────┘"
 fi
