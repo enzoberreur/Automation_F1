@@ -12,6 +12,10 @@ global:
     environment: 'production'
     team: 'scuderia-ferrari'
 
+# Fichiers de règles Prometheus (alertes)
+rule_files:
+  - "/prometheus-rules/alerts.yml"
+
 # ============================================================================
 # SCRAPE CONFIGURATIONS - Collecte des métriques des services
 # ============================================================================

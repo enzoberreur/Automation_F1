@@ -32,274 +32,133 @@
 - **4/4 endpoints** Prometheus opérationnels
 - **100%** système fonctionnel avec monitoring complet
 
+# 🏎️ Ferrari F1 IoT — Automation_F1
+
+Projet localisé : simulateur de télémétrie Ferrari F1, pipeline de traitement en temps réel, et stack de monitoring (Prometheus + Grafana). Ce README est aligné sur l'état actuel du projet et explique comment démarrer, où trouver les dashboards et comment investiguer.
+
+Table des matières
+- Démarrage rapide
+- Services exposés
+- Dashboards Grafana (emplacement/description)
+- Métriques importantes
+- Commandes utiles
+- Contribuer
+
 ---
 
-## � **DÉMARRAGE RAPIDE**
+## ⚡ Démarrage rapide
 
-### **Prérequis**
-- **Docker** & **Docker Compose**
-- **8GB RAM** minimum
-- **Ports libres** : 3000, 8080, 8082, 9090, 8001, 8000
+Pré-requis : Docker & Docker Compose
 
-### **⚡ Installation en 3 étapes**
+1) Cloner et démarrer
 
 ```bash
-# 1. Cloner le repository
 git clone https://github.com/enzoberreur/Automation_F1.git
 cd Automation_F1
-
-# 2. Démarrer l'infrastructure complète
 docker-compose up -d --build
+```
 
-# 3. Attendre 30s et vérifier l'état
+2) Vérifier les services
+
+```bash
 docker-compose ps
 ```
 
-### **✅ Vérification du déploiement**
-
-Tous les services doivent afficher `Up` :
-```
-ferrari-grafana              Up      0.0.0.0:3000->3000/tcp
-ferrari-prometheus           Up      0.0.0.0:9090->9090/tcp  
-ferrari-airflow-webserver    Up      0.0.0.0:8080->8080/tcp
-ferrari-stream-processor     Up      0.0.0.0:8001->8001/tcp
-
----
-
-## 📊 **DASHBOARDS D'ANALYSE**
-
-### **🎛️ Accès aux Interfaces**
-
-| **Service** | **URL** | **Identifiants** | **Description** |
-|-------------|---------|------------------|-----------------|
-| **🏎️ Grafana** | [localhost:3000](http://localhost:3000) | `admin` / `admin` | **Dashboard principal Ferrari** - Métriques temps réel, score pit-stop, anomalies |
-| **🔍 Prometheus** | [localhost:9090](http://localhost:9090) | - | **Métriques système** - Queries custom, targets, exploration données |  
-| **🌪️ Airflow** | [localhost:8080](http://localhost:8080) | `admin` / `admin` | **Workflows ETL** - Pipelines automatisés, DAGs, orchestration |
-| **🐳 cAdvisor** | [localhost:8082](http://localhost:8082) | - | **Monitoring containers** - CPU/RAM, réseau, performances |
-
-### **📈 Métriques Ferrari Disponibles**
-
-**Métriques Business :**
-```promql
-ferrari_messages_received_total         # Messages télémétrie totaux
-ferrari_pitstop_score                  # Score pit-stop (0-100)  
-ferrari_active_anomalies               # Anomalies détectées
-ferrari_current_throughput_msg_per_sec # Débit temps réel
-```
-
-**Métriques Techniques :**
-```promql
-ferrari_processing_latency_seconds      # Latence traitement
-ferrari_simulator_messages_generated_total # Messages générés
-ferrari_simulator_send_errors_total     # Erreurs de transmission
-```
+Ports exposés par défaut :
+- Grafana : 3000
+- Prometheus : 9090
+- Airflow : 8080
+- cAdvisor : 8082
+- Stream-processor : 8001
+- Sensor-simulator metrics : 8000
 
 ---
 
-## 🏗️ **ARCHITECTURE SYSTÈME**
+## 🧩 Services (etat actuel)
 
-### **🔧 Stack Technologique**
-
-| **Layer** | **Technologies** | **Rôle** |
-|-----------|------------------|-----------|
-| **Ingestion** | FastAPI, HTTP | Collecte télémétrie haute fréquence |
-| **Processing** | Python, Asyncio, Pydantic | Traitement temps réel + détection anomalies |
-| **Storage** | PostgreSQL, Redis | Persistance données + cache |
-| **Monitoring** | Prometheus, cAdvisor, Grafana | Observabilité complète infrastructure |
-| **Orchestration** | Apache Airflow | Pipelines ETL + workflows automatisés |
-| **Container** | Docker, Docker Compose | Microservices + scalabilité |
-| **K8s Ready** | Kubernetes manifests | Déploiement production cloud-native |
-
-### **⚙️ Services Détaillés**
-
-#### **🏎️ Sensor Simulator**
-- **Rôle** : Génère télémétrie réaliste Ferrari F1 (320 km/h, 15800 RPM, etc.)
-- **Protocoles** : HTTP POST
-- **Métriques** : Prometheus sur `:8000/metrics`
-- **Volume** : 1000+ messages/seconde
-
-#### **⚡ Stream Processor**  
-- **Rôle** : Traitement temps réel + calcul score pit-stop + détection anomalies
-- **API** : FastAPI REST sur `:8001`
-- **Algorithmes** : Seuils dynamiques, moyennes mobiles, ML-ready
-- **Outputs** : Métriques Prometheus + PostgreSQL
-
-#### **🎛️ Monitoring Stack**
-- **Prometheus** : Collecte métriques (15s interval)
-- **Grafana** : Visualisation + alerting  
-- **cAdvisor** : Surveillance containers Docker
-
-#### **🌪️ Airflow Workflows**
-- **DAG Principal** : `ferrari_grand_prix_dag`
-- **Fréquence** : Hourly (configurable)
-- **Pipeline** : ETL données → Analyse batch → Notifications
+- sensor-simulator — génère la télémétrie et expose des métriques Prometheus sur le port `8000`.
+- stream-processor — service REST (`:8001`) qui consomme la télémétrie et produit des métriques et enregistrements.
+- prometheus — collecte les métriques. Config : `./monitoring/prometheus.yml`.
+- grafana — héberge les dashboards. Les dashboards sont dans `./monitoring/`.
+- cadvisor — métriques conteneurs.
+- airflow — orchestration ETL et génération de données batch.
 
 ---
 
-## 🎮 **UTILISATION**
+## 📊 Dashboards Grafana
 
-### **🔥 Génération de Données Ferrari**
+Emplacements sources :
+- `./monitoring/grafana_dashboard_main.json` — Dashboard principal "Ferrari F1 - Main Operations" (importé dans Grafana, UID: `ferrari-main-dashboard`).
+- `./monitoring/grafana_dashboard_data.json`, `./monitoring/grafana_dashboard_strategy.json`, `./monitoring/grafana_dashboard_data_quality.json` — autres dashboards créés pour exploration et qualité des données.
 
-```bash
-# Envoyer des données de test
-curl -X POST "http://localhost:8001/telemetry" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "timestamp": "2025-10-14T14:30:00Z",
-    "car_id": "SF23_16", 
-    "driver": "Charles_Leclerc",
-    "lap": 25,
-    "speed_kmh": 325.8,
-    "rpm": 15800,
-    "engine_temp_celsius": 108.5,
-    "brake_temp_fl_celsius": 485.2,
-    "tire_temp_fl_celsius": 92.1,
-    "tire_wear_percent": 15.3,
-    "fuel_remaining_kg": 45.7,
-    "drs_status": "open"
-  }'
-```
+Accès Grafana : http://localhost:3000 (admin/admin)
 
-### **📊 Queries Prometheus Utiles**
-
-```bash
-# Messages totaux traités
-curl "http://localhost:9090/api/v1/query?query=ferrari_messages_received_total"
-
-# Débit temps réel  
-curl "http://localhost:9090/api/v1/query?query=ferrari_current_throughput_msg_per_sec"
-
-# Anomalies actives
-curl "http://localhost:9090/api/v1/query?query=ferrari_active_anomalies"
-```
-
-### **🏁 Lancer un Workflow Airflow**
-
-1. Accédez à [localhost:8080](http://localhost:8080)  
-2. Activez le DAG `ferrari_grand_prix_dag`
-3. Cliquez **Trigger DAG** pour un run manuel
-4. Consultez les logs et métriques en temps réel
+Description rapide du dashboard principal (voir `monitoring/grafana_dashboard_main.json` pour les panels) :
+- KPI row : throughput, efficiency index (pitstop), engine temp, active anomalies, fuel remaining
+- Sparklines : throughput 1h, pitstop 24h, engine temp 1h
+- Service health : up{job=...} pour sensor-simulator, stream-processor, prometheus, grafana
+- Latency : p50/p95/p99 + heatmap
+- Thermal cockpit : brake temps, tire temps, tire wear avg/max
+- Imbalance panels : brake/tire temp delta, tire pressure imbalance
+- Projections : tire wear projection (15m), panneau texte de recommandations
+- Data quality : freshness, missing metrics, cardinality, counter resets
 
 ---
 
-## ⚙️ **CONFIGURATION**
+## 📈 Métriques importantes (noms exposés)
 
-### **🔧 Variables d'Environnement**
+Les métriques produites par le simulateur et utilisées dans les dashboards :
 
-```bash
-# Stream Processor
-PROCESSOR_MODE=rest
-PORT=8001
+- `ferrari_simulator_messages_sent_total` (counter)
+- `ferrari_simulator_current_throughput_msg_per_sec` (gauge)
+- `ferrari_simulator_send_latency_seconds_bucket` (histogram)
+- `ferrari_simulator_engine_temp_celsius` (gauge)
+- `ferrari_simulator_brake_temp_*_celsius` (gauges)
+- `ferrari_simulator_tire_temp_*_celsius` (gauges)
+- `ferrari_simulator_tire_wear_percent` (gauge)
+- `ferrari_pitstop_score` (gauge)
+- `ferrari_active_anomalies` (gauge/counter)
+- `ferrari_simulator_fuel_remaining_kg` (gauge)
 
-# Sensor Simulator  
-TELEMETRY_MODE=http
-HTTP_ENDPOINT=http://ferrari-stream-processor:8001/telemetry
-TARGET_THROUGHPUT=1000
-
-# Database
-POSTGRES_USER=airflow
-POSTGRES_PASSWORD=airflow  
-POSTGRES_DB=airflow
-```
-
-### **⚡ Performance Tuning**
-
-```yaml
-# docker-compose.override.yml
-version: '3.8'
-services:
-  stream-processor:
-    deploy:
-      resources:
-        limits:
-          memory: 1G
-          cpus: '1.0'
-  
-  sensor-simulator:
-    environment:
-      - TARGET_THROUGHPUT=2000  # Augmenter le débit
-```
+Si une métrique est absente, les panels utilisent un fallback `vector(0)` pour éviter les erreurs Grafana.
 
 ---
 
-## 🚀 **DÉPLOIEMENT PRODUCTION**
+## 🔍 Commandes utiles
 
-### **☸️ Kubernetes (Optionnel)**
-
-```bash
-# Déployer sur cluster K8s
-kubectl apply -f k8s/
-
-# Vérifier les pods
-kubectl get pods -l app.kubernetes.io/name=ferrari-f1
-
-# Accéder aux services  
-kubectl port-forward svc/grafana 3000:3000
-kubectl port-forward svc/prometheus 9090:9090
-```
-
-### **🏭 Docker Swarm**
-
-```bash
-# Mode Swarm pour haute disponibilité
-docker swarm init
-docker stack deploy -c docker-compose.yml ferrari-f1
-```
-
----
-
-## 📚 **DOCUMENTATION**
-
-### **📋 Structure Projet**
-
-```
-📁 Automation_F1/
-├── 📁 sensor-simulator/     # Générateur télémétrie Ferrari
-├── 📁 stream-processor/     # Processing temps réel + anomalies  
-├── 📁 monitoring/          # Stack Prometheus + Grafana
-├── 📁 airflow/             # Workflows ETL + DAGs
-├── 📁 k8s/                 # Manifests Kubernetes  
-├── 📁 docs/                # Documentation détaillée
-├── 🐳 docker-compose.yml   # Orchestration complète
-└── 📖 README.md           # Ce fichier
-```
-
-### **📖 Documents Détaillés**
-
-- **[📊 Architecture Report](docs/report.md)** - Analyse technique complète
-- **[🎯 Use Cases](docs/use-cases.md)** - Cas d'usage business Ferrari F1
-
----
-
-## 🔧 **TROUBLESHOOTING**
-
-### **❓ Problèmes Fréquents**
-
-#### **🚨 Services ne démarrent pas**
-```bash
-# Vérifier les logs
-docker-compose logs -f ferrari-stream-processor
-
-# Redémarrer un service spécifique  
-docker-compose restart ferrari-grafana
-
-# Reset complet
-docker-compose down -v && docker-compose up -d --build
-```
-
-#### **📊 Pas de données dans Grafana**
-```bash
-# Vérifier les targets Prometheus
+# Vérifier targets Prometheus
 curl http://localhost:9090/targets
 
-# Tester l'endpoint télémétrie
-curl -X POST http://localhost:8001/telemetry \
-  -H "Content-Type: application/json" \
-  -d '{"timestamp":"2025-10-14T12:00:00Z","car_id":"SF23_16","driver":"Test"}'
-```
+# Re-importer le dashboard principal (local)
+curl -sS -u admin:admin -H "Content-Type: application/json" -X POST --data-binary @monitoring/grafana_dashboard_main.json http://localhost:3000/api/dashboards/db
 
-#### **🔍 Debug Performance**
-```bash
+# Lancer un envoi de données de test
+curl -X POST "http://localhost:8001/telemetry" -H "Content-Type: application/json" -d @monitoring/test_payload.json
+
+---
+
+## �️ Contribution & workflow
+
+- Branche recommandée pour modifications : `main` (ou ouvrez une branche feature/xxx)
+- Commit & push standard : `git add . && git commit -m "feat: ..." && git push`.
+
+---
+
+## Prochaines étapes suggérées
+
+- Ajouter des recording rules pour les métriques dérivées (tire wear projection, engine z-score).
+- Connecter Alertmanager pour notifications (Slack/email) sur alertes critiques.
+- Itérer sur l'UI Grafana (couleurs/seuils) si vous voulez un rendu plus "wow".
+
+---
+
+Si vous voulez, je peux maintenant :
+- committer ces changements (`monitoring/grafana_dashboard_main.json`, `README.md`) sur une branche `monitoring/dashboard-main` et pousser;
+- ajouter les recording rules et mettre à jour `monitoring/prometheus.yml`;
+- ajouter des runbooks dans les panels Grafana.
+
+Dites-moi l'option que vous préférez.
+
 # Métriques système
 docker stats
 
@@ -371,7 +230,7 @@ git push origin feature/nouvelle-fonctionnalite
 ```
 MIT License - Ferrari F1 IoT Smart Pit-Stop
 
-Copyright (c) 2025 Enzo Berreur - Scuderia Ferrari Engineering Team
+Copyright (c) 2025 - Scuderia Ferrari Engineering Team
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files...

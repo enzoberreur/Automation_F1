@@ -1,0 +1,38 @@
+groups:
+  - name: ferrari-default-rules
+    rules:
+      - alert: SensorSimulatorDown
+        expr: absent(ferrari_simulator_current_throughput_msg_per_sec)
+        for: 1m
+        labels:
+          severity: page
+        annotations:
+          summary: "Sensor simulator metrics missing"
+          description: "No throughput metric from sensor-simulator for more than 1m."
+
+      - alert: HighLatencyP99
+        expr: histogram_quantile(0.99, sum(rate(ferrari_simulator_send_latency_seconds_bucket[1m])) by (le)) > 1
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "High 99th percentile latency"
+          description: "p99 send latency above 1s for more than 2m."
+
+      - alert: LowPitstopScore
+        expr: avg_over_time(ferrari_pitstop_score[5m]) < 30
+        for: 3m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Low pitstop score"
+          description: "Average pitstop score below 30 over 5m."
+
+      - alert: CardinalityDrop
+        expr: (count(count by (car_id) (ferrari_pitstop_score)) < 1)
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Cardinality drop detected"
+          description: "No car_id labels found for pitstop score."

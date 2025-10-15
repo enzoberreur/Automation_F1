@@ -1,0 +1,24 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "Ferrari F1 - Strategy Command",
+    "tags": ["strategy","pitstop","ferrari"],
+    "schemaVersion": 30,
+    "version": 1,
+    "time": { "from": "now-1h", "to": "now" },
+    "templating": {
+      "list": [
+        { "type": "interval", "name": "interval", "label": "Interval", "query": "1m,5m,15m,1h", "current": { "text": "5m", "value": "5m" } },
+        { "type": "query", "name": "car_id", "label": "Car", "datasource": "Prometheus", "query": "label_values(ferrari_pitstop_score, car_id)", "current": {} }
+      ]
+    },
+    "panels": [
+      { "id": 1, "type": "stat", "title": "Efficiency Index (avg pitstop score)", "gridPos": { "h": 3, "w": 6, "x": 0, "y": 0 }, "datasource": "Prometheus", "targets": [ { "expr": "avg_over_time(ferrari_pitstop_score[$interval])", "refId": "A" } ], "fieldConfig": { "defaults": { "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "yellow", "value": 50 }, { "color": "red", "value": 30 } ] } } } },
+      { "id": 2, "type": "timeseries", "title": "Pitstop Score (over time)", "gridPos": { "h": 5, "w": 12, "x": 6, "y": 0 }, "datasource": "Prometheus", "targets": [ { "expr": "ferrari_pitstop_score{car_id=~\"$car_id\"}", "refId": "A" } ], "options": { "legend": { "placement": "bottom" } } },
+  { "id": 3, "type": "timeseries", "title": "Tire Wear - projected", "gridPos": { "h": 5, "w": 12, "x": 0, "y": 5 }, "datasource": "Prometheus", "targets": [ { "expr": "avg_over_time(ferrari_simulator_tire_wear_percent[$interval])", "refId": "A" }, { "expr": "avg_over_time(ferrari_simulator_tire_wear_percent[30m]) + increase(ferrari_simulator_tire_wear_percent[30m]) * (300/1800)", "refId": "B", "legendFormat": "Projection (5m)" } ] },
+      { "id": 4, "type": "timeseries", "title": "ERS vs Engine Temp (correlation)", "gridPos": { "h": 5, "w": 12, "x": 12, "y": 5 }, "datasource": "Prometheus", "targets": [ { "expr": "ferrari_simulator_ers_power_kw", "refId": "A" }, { "expr": "ferrari_simulator_engine_temp_celsius", "refId": "B" } ] },
+      { "id": 5, "type": "table", "title": "Actionable Recommendations", "gridPos": { "h": 6, "w": 24, "x": 0, "y": 10 }, "datasource": "Prometheus", "targets": [ { "expr": "topk(10, ferrari_pitstop_recommendations_total)", "refId": "A", "format": "table" } ] }
+    ]
+  },
+  "overwrite": true
+}
