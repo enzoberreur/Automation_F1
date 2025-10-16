@@ -122,6 +122,57 @@ Le document `ARCHITECTURE.md` fournit une description complète (diagrammes, flu
 
 ---
 
+## 🧭 Pourquoi cette architecture ?
+
+### 1. Ingestion HTTP + métriques Prometheus
+- **Choix actuel** : un simulateur Python publie la télémétrie via une API HTTP et expose les métriques Prometheus sur le même pod.
+- **Pourquoi** : HTTP reste trivial à faire tourner localement, ne nécessite aucun cluster Kafka et permet de brancher n’importe quel outil de test (curl, Postman) quand on développe les algorithmes.
+- **Alternative envisagée** : un bus Kafka ou NATS pour de l’ingestion massive. On le garde sous le coude car le simulateur sait déjà produire du JSON compatible Kafka, mais on évite la dette opérationnelle tant que la charge reste inférieure au million d’événements/s.
+
+### 2. Traitement temps réel monolithique
+- **Choix actuel** : un `stream-processor` unique (FastAPI + worker interne) calcule les KPI et relaye les événements critiques.
+- **Pourquoi** : l’algorithme métier (recommandation pit-stop, anomalies) partage énormément de contexte ; garder un seul processus simplifie la cohérence et permet d’itérer vite.
+- **Alternative** : découper en micro-services (détection anomalies, scoring pit-stop, enrichissement) ou passer sur un moteur stream (Flink, Spark). Pertinent uniquement si l’on veut paralléliser sur plusieurs nœuds ou appliquer du ML temps réel.
+
+### 3. Stockage orienté séries temporelles minimaliste
+- **Choix actuel** : Prometheus uniquement pour les métriques temps réel, PostgreSQL pour l’historique batch.
+- **Pourquoi** : Prometheus suffit pour des fenêtres courtes (quelques heures) et Grafana sait interroger directement PromQL. PostgreSQL déjà présent avec Airflow couvre les besoins d’archives.
+- **Alternatives** : TimescaleDB, InfluxDB ou ClickHouse si on doit requêter plusieurs semaines/mois de télémétrie avec agrégations lourdes.
+
+### 4. Dashboards provisionnés automatiquement
+- **Choix actuel** : Grafana importé par script (`import-dashboard.sh`) avec des JSON versionnés.
+- **Pourquoi** : reproductibilité totale entre dev et prod, aucun clic manuel pour installer ou mettre à jour un dashboard.
+- **Alternative** : Terraform/Grafana API via CI. À prioriser si plusieurs environnements doivent être tenus à jour par une équipe ops.
+
+### 5. Batch orchestré par Airflow
+- **Choix actuel** : Airflow + PostgreSQL + Redis pour les workloads différés (rejeu, ML offline, rapports).
+- **Pourquoi** : l’écosystème Airflow est standard en data eng, offre des hooks SQL/HTTP, et réutilise PostgreSQL/Redis déjà nécessaires à Grafana et au simulateur.
+- **Alternative** : Dagster ou Prefect pour des pipelines Python plus légers, ou des jobs Kubernetes CronJob si seuls quelques scripts sont à lancer.
+
+---
+
+## 🚀 Scalabilité : aujourd'hui et demain
+
+### Capacités actuelles
+- Le simulateur sature un CPU autour de ~300k événements/s tout en gardant des latences < 1 ms.
+- Le stream-processor est stateless côté HTTP : on peut lancer plusieurs réplicas derrière un load balancer si nécessaire.
+- Les dashboards s’appuient sur Prometheus en mode scrape (1 instance suffit pour l’instant) et peuvent être clonés pour des équipes différentes.
+
+### Limites à garder en tête
+- **Transport HTTP** : au-delà de quelques millions d’événements/s, HTTP devient le goulot. Passage recommandé sur Kafka + partitions pour absorber le débit.
+- **Persistance** : Prometheus n’est pas conçu pour conserver des années de données. Pour du long terme il faudra externaliser vers un TSDB (Thanos, Mimir, TimescaleDB).
+- **Traitement monolithique** : en cas d’algorithmes hétérogènes (ML en ligne, micro-services d’enrichissement), le code unique deviendra difficile à scaler.
+
+### Plan d’évolution réaliste
+1. **Étendre l’ingestion** : activer le mode Kafka déjà esquisé dans le code (`PROCESSOR_MODE=kafka`) et basculer le simulateur sur un producteur Kafka.
+2. **Partitionner le traitement** : extraire la détection d’anomalies dans un worker (Celery ou Faust) pour paralléliser selon `car_id`.
+3. **Séparer l’analytique** : stocker la télémétrie agrégée dans un entrepôt colonne (BigQuery/Snowflake) pour des dashboards historiques ou du ML.
+4. **Automatiser le déploiement** : Helm charts + GitOps (ArgoCD) pour monter plusieurs environnements homogènes.
+
+Ces étapes suffisent pour passer d’un laboratoire à une plateforme qui supporte des centaines de voitures simulées ou des flux externes en production.
+
+---
+
 ## 🛠️ Développement & contributions
 
 1. Créer une branche (`git checkout -b feature/xxx`).
