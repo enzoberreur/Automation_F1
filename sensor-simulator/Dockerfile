@@ -15,10 +15,13 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY main.py .
 
 # Configuration par défaut
-ENV TELEMETRY_MODE=http \
+ENV SIMULATION_MODE=championship \
     CAR_ID=Ferrari-F1-75 \
+    TEAM_NAME=Scuderia_Ferrari_HP \
     DRIVER=Charles_Leclerc \
-    TARGET_THROUGHPUT=1500 \
+    CAR_MODEL=SF-24 \
+    CAR_NUMBER=16 \
+    TARGET_THROUGHPUT_PER_CAR=250 \
     HTTP_ENDPOINT=http://stream-processor:8001/telemetry
 
 # Point d'entrée

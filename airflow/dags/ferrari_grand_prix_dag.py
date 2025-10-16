@@ -33,6 +33,31 @@ from airflow.utils.task_group import TaskGroup
 # Configuration du logger
 logger = logging.getLogger(__name__)
 
+TEAM_GRID: List[Dict[str, str]] = [
+    {"team": "Scuderia Ferrari", "driver": "Charles Leclerc", "car_id": "Ferrari-SF-24-16"},
+    {"team": "Scuderia Ferrari", "driver": "Carlos Sainz", "car_id": "Ferrari-SF-24-55"},
+    {"team": "Oracle Red Bull Racing", "driver": "Max Verstappen", "car_id": "RedBull-RB20-1"},
+    {"team": "Oracle Red Bull Racing", "driver": "Sergio Pérez", "car_id": "RedBull-RB20-11"},
+    {"team": "Mercedes-AMG Petronas", "driver": "Lewis Hamilton", "car_id": "Mercedes-W15-44"},
+    {"team": "Mercedes-AMG Petronas", "driver": "George Russell", "car_id": "Mercedes-W15-63"},
+    {"team": "McLaren F1 Team", "driver": "Lando Norris", "car_id": "McLaren-MCL38-4"},
+    {"team": "McLaren F1 Team", "driver": "Oscar Piastri", "car_id": "McLaren-MCL38-81"},
+    {"team": "Aston Martin Aramco", "driver": "Fernando Alonso", "car_id": "AstonMartin-AMR24-14"},
+    {"team": "Aston Martin Aramco", "driver": "Lance Stroll", "car_id": "AstonMartin-AMR24-18"},
+    {"team": "Alpine F1 Team", "driver": "Esteban Ocon", "car_id": "Alpine-A524-31"},
+    {"team": "Alpine F1 Team", "driver": "Pierre Gasly", "car_id": "Alpine-A524-10"},
+    {"team": "Visa Cash App RB", "driver": "Yuki Tsunoda", "car_id": "RB-VCARB01-22"},
+    {"team": "Visa Cash App RB", "driver": "Daniel Ricciardo", "car_id": "RB-VCARB01-3"},
+    {"team": "Stake F1 Team Kick", "driver": "Valtteri Bottas", "car_id": "Kick-Sauber-C44-77"},
+    {"team": "Stake F1 Team Kick", "driver": "Guanyu Zhou", "car_id": "Kick-Sauber-C44-24"},
+    {"team": "Williams Racing", "driver": "Alex Albon", "car_id": "Williams-FW46-23"},
+    {"team": "Williams Racing", "driver": "Logan Sargeant", "car_id": "Williams-FW46-2"},
+    {"team": "Haas F1 Team", "driver": "Kevin Magnussen", "car_id": "Haas-VF24-20"},
+    {"team": "Haas F1 Team", "driver": "Nico Hülkenberg", "car_id": "Haas-VF24-27"},
+]
+
+EXPECTED_TEAMS = sorted({entry["team"] for entry in TEAM_GRID})
+
 # ============================================================================
 # CONFIGURATION DU DAG
 # ============================================================================
@@ -185,24 +210,44 @@ class DataPersistence:
         # Insertion batch
         insert_query = """
         INSERT INTO telemetry_data (
-            timestamp, car_id, driver, lap, speed_kmh, rpm,
+            timestamp, car_id, team, driver, lap, speed_kmh, rpm,
             brake_temp_avg, tire_temp_avg, tire_wear_percent,
             has_anomaly, anomaly_type, pitstop_score
-        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         """
-        
+
         records_inserted = 0
+        teams_streamed = set()
         for data in sample_data:
             try:
-                pg_hook.run(insert_query, parameters=data)
+                pg_hook.run(
+                    insert_query,
+                    parameters=(
+                        data["timestamp"],
+                        data["car_id"],
+                        data["team"],
+                        data["driver"],
+                        data["lap"],
+                        data["speed_kmh"],
+                        data["rpm"],
+                        data["brake_temp_avg"],
+                        data["tire_temp_avg"],
+                        data["tire_wear_percent"],
+                        data["has_anomaly"],
+                        data["anomaly_type"],
+                        data["pitstop_score"],
+                    ),
+                )
                 records_inserted += 1
+                teams_streamed.add(data["team"])
             except Exception as e:
                 logger.error(f"Erreur insertion: {e}")
-        
+
         save_stats = {
             'records_inserted': records_inserted,
             'table': 'telemetry_data',
-            'timestamp': datetime.utcnow().isoformat()
+            'timestamp': datetime.utcnow().isoformat(),
+            'teams_streamed': sorted(teams_streamed),
         }
         
         context['task_instance'].xcom_push(key='save_stats', value=save_stats)
@@ -211,34 +256,48 @@ class DataPersistence:
         return save_stats
     
     @staticmethod
-    def _generate_sample_data(count: int) -> List[tuple]:
-        """Génère des données de démonstration"""
+    def _generate_sample_data(count: int) -> List[Dict[str, Any]]:
+        """Génère des données de démonstration multi-équipes."""
         import random
-        
-        data = []
+
+        data: List[Dict[str, Any]] = []
         base_time = datetime.utcnow()
-        
-        for i in range(count):
+
+        roster_sequence = TEAM_GRID.copy()
+        random.shuffle(roster_sequence)
+
+        idx = 0
+        for roster in roster_sequence[:min(count, len(roster_sequence))]:
+            timestamp = base_time + timedelta(seconds=idx)
+            data.append(DataPersistence._build_record(timestamp, roster))
+            idx += 1
+
+        for i in range(idx, count):
             timestamp = base_time + timedelta(seconds=i)
-            
-            # Données simulées
-            record = (
-                timestamp,                              # timestamp
-                'Ferrari-F1-75',                       # car_id
-                'Charles_Leclerc',                     # driver
-                random.randint(1, 50),                 # lap
-                random.uniform(200, 350),              # speed_kmh
-                random.randint(10000, 19000),          # rpm
-                random.uniform(250, 950),              # brake_temp_avg
-                random.uniform(80, 130),               # tire_temp_avg
-                random.uniform(0, 100),                # tire_wear_percent
-                random.choice([True, False]),          # has_anomaly
-                random.choice([None, 'brake_overheat', 'tire_overheat']),  # anomaly_type
-                random.uniform(0, 100)                 # pitstop_score
-            )
-            data.append(record)
-        
+            roster = random.choice(TEAM_GRID)
+            data.append(DataPersistence._build_record(timestamp, roster))
+
         return data
+
+    @staticmethod
+    def _build_record(timestamp: datetime, roster: Dict[str, str]) -> Dict[str, Any]:
+        import random
+
+        return {
+            "timestamp": timestamp,
+            "car_id": roster["car_id"],
+            "team": roster["team"],
+            "driver": roster["driver"],
+            "lap": random.randint(1, 58),
+            "speed_kmh": random.uniform(210, 345),
+            "rpm": random.randint(10500, 19000),
+            "brake_temp_avg": random.uniform(300, 950),
+            "tire_temp_avg": random.uniform(75, 130),
+            "tire_wear_percent": random.uniform(0, 95),
+            "has_anomaly": random.choice([True, False]),
+            "anomaly_type": random.choice([None, 'brake_overheat', 'tire_overheat', 'ers_drop', 'fuel_pressure']),
+            "pitstop_score": random.uniform(0, 100),
+        }
 
 
 class BatchAnalytics:
@@ -270,7 +329,7 @@ class BatchAnalytics:
         """
         
         result = pg_hook.get_first(stats_query)
-        
+
         if result:
             statistics = {
                 'total_records': result[0],
@@ -301,9 +360,40 @@ class BatchAnalytics:
             }
         else:
             statistics = {'error': 'No data available'}
-        
+
+        team_stats_query = """
+        SELECT
+            team,
+            COUNT(*) as events,
+            AVG(speed_kmh) as avg_speed,
+            AVG(tire_wear_percent) as avg_tire_wear,
+            AVG(pitstop_score) as avg_pitstop_score,
+            COUNT(CASE WHEN has_anomaly THEN 1 END) as anomaly_count
+        FROM telemetry_data
+        WHERE timestamp >= NOW() - INTERVAL '1 hour'
+        GROUP BY team
+        ORDER BY team
+        """
+
+        team_records = pg_hook.get_records(team_stats_query)
+        team_statistics = []
+        for team, events, avg_speed, avg_wear, avg_pit, anomaly_count in team_records:
+            anomaly_rate = round((anomaly_count / events * 100), 2) if events else 0
+            team_statistics.append({
+                'team': team,
+                'events': events,
+                'avg_speed': round(float(avg_speed), 2) if avg_speed else 0,
+                'avg_tire_wear': round(float(avg_wear), 2) if avg_wear else 0,
+                'avg_pitstop_score': round(float(avg_pit), 2) if avg_pit else 0,
+                'anomaly_rate': anomaly_rate,
+            })
+
+        if team_statistics:
+            statistics['team_breakdown'] = team_statistics
+            BatchAnalytics.persist_team_statistics(pg_hook, team_statistics)
+
         context['task_instance'].xcom_push(key='statistics', value=statistics)
-        
+
         logger.info(f"✅ Statistiques calculées: {json.dumps(statistics, indent=2)}")
         return statistics
     
@@ -347,6 +437,40 @@ class BatchAnalytics:
         logger.info(f"✅ Analyse pit-stop: {json.dumps(recommendations, indent=2)}")
         return recommendations
 
+    @staticmethod
+    def persist_team_statistics(pg_hook: PostgresHook, team_statistics: List[Dict[str, Any]]):
+        """Persiste les statistiques par équipe dans la table dédiée."""
+
+        if not team_statistics:
+            return
+
+        insert_query = """
+        INSERT INTO telemetry_team_summary (
+            execution_date,
+            team,
+            events,
+            avg_speed,
+            avg_tire_wear,
+            avg_pitstop_score,
+            anomaly_rate
+        ) VALUES (%s, %s, %s, %s, %s, %s, %s)
+        """
+
+        execution_date = datetime.utcnow()
+        for stat in team_statistics:
+            pg_hook.run(
+                insert_query,
+                parameters=(
+                    execution_date,
+                    stat['team'],
+                    stat['events'],
+                    stat['avg_speed'],
+                    stat['avg_tire_wear'],
+                    stat['avg_pitstop_score'],
+                    stat['anomaly_rate'],
+                ),
+            )
+
 
 class NotificationManager:
     """Gestionnaire de notifications et logs"""
@@ -366,10 +490,20 @@ class NotificationManager:
             task_ids='batch_analysis.analyze_pitstop_recommendations',
             key='recommendations'
         )
-        
+
         save_stats = context['task_instance'].xcom_pull(
             task_ids='save_telemetry_data',
             key='save_stats'
+        )
+
+        dq_recent = context['task_instance'].xcom_pull(
+            task_ids='data_quality.assert_recent_data',
+            key='dq_recent_events'
+        )
+
+        dq_missing = context['task_instance'].xcom_pull(
+            task_ids='data_quality.validate_team_coverage',
+            key='dq_missing_teams'
         )
         
         # Construction du rapport
@@ -382,11 +516,17 @@ class NotificationManager:
                 'anomalies_detected': statistics.get('anomalies', {}).get('count', 0),
                 'avg_speed': statistics.get('speed', {}).get('mean', 0),
                 'avg_pitstop_score': recommendations.get('avg_pitstop_score', 0),
-                'recommendation': recommendations.get('recommendation', 'Unknown')
+                'recommendation': recommendations.get('recommendation', 'Unknown'),
+                'recent_events_window': dq_recent or 0,
+                'teams_streamed': save_stats.get('teams_streamed', [])
             },
             'details': {
                 'statistics': statistics,
-                'pitstop_analysis': recommendations
+                'pitstop_analysis': recommendations,
+                'data_quality': {
+                    'recent_events': dq_recent,
+                    'missing_teams': dq_missing,
+                }
             },
             'timestamp': datetime.utcnow().isoformat()
         }
@@ -416,6 +556,50 @@ class NotificationManager:
         logger.info(f"   - Avg Speed: {report['summary']['avg_speed']} km/h")
         logger.info(f"   - Pit-stop Score: {report['summary']['avg_pitstop_score']}")
 
+
+class DataQuality:
+    """Contrôles de qualité des données ingérées."""
+
+    @staticmethod
+    def assert_recent_data(**context) -> Dict[str, Any]:
+        pg_hook = PostgresHook(postgres_conn_id='ferrari_postgres')
+        recent_count = pg_hook.get_first(
+            """
+            SELECT COUNT(*)
+            FROM telemetry_data
+            WHERE timestamp >= NOW() - INTERVAL '5 minutes'
+            """
+        )
+
+        total = recent_count[0] if recent_count else 0
+        if total == 0:
+            raise ValueError("Aucune télémétrie récente détectée dans les 5 dernières minutes")
+
+        context['task_instance'].xcom_push(key='dq_recent_events', value=total)
+        logger.info("✅ Data Quality - %s événements récents", total)
+        return {"recent_events": total}
+
+    @staticmethod
+    def validate_team_coverage(**context) -> Dict[str, Any]:
+        pg_hook = PostgresHook(postgres_conn_id='ferrari_postgres')
+        team_rows = pg_hook.get_records(
+            """
+            SELECT DISTINCT team
+            FROM telemetry_data
+            WHERE timestamp >= NOW() - INTERVAL '1 hour'
+            """
+        )
+
+        observed = sorted(row[0] for row in team_rows)
+        missing = sorted(set(EXPECTED_TEAMS) - set(observed))
+
+        context['task_instance'].xcom_push(key='dq_missing_teams', value=missing)
+
+        if missing:
+            raise ValueError(f"Les équipes suivantes sont absentes de la fenêtre d'analyse: {', '.join(missing)}")
+
+        logger.info("✅ Data Quality - Couverture complète des %d équipes", len(EXPECTED_TEAMS))
+        return {"teams": observed}
 
 # ============================================================================
 # DÉFINITION DU DAG
@@ -455,6 +639,7 @@ with DAG(
                 id SERIAL PRIMARY KEY,
                 timestamp TIMESTAMP NOT NULL,
                 car_id VARCHAR(50) NOT NULL,
+                team VARCHAR(100) NOT NULL,
                 driver VARCHAR(100) NOT NULL,
                 lap INTEGER,
                 speed_kmh FLOAT,
@@ -467,13 +652,35 @@ with DAG(
                 pitstop_score FLOAT,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );
-            
+
             CREATE INDEX IF NOT EXISTS idx_telemetry_timestamp ON telemetry_data(timestamp);
             CREATE INDEX IF NOT EXISTS idx_telemetry_car_id ON telemetry_data(car_id);
+            CREATE INDEX IF NOT EXISTS idx_telemetry_team ON telemetry_data(team);
             CREATE INDEX IF NOT EXISTS idx_telemetry_has_anomaly ON telemetry_data(has_anomaly);
             """,
             doc_md="Crée la table telemetry_data avec les index nécessaires"
         )
+
+        create_team_summary_table = PostgresOperator(
+            task_id='create_team_summary_table',
+            postgres_conn_id='ferrari_postgres',
+            sql="""
+            CREATE TABLE IF NOT EXISTS telemetry_team_summary (
+                id SERIAL PRIMARY KEY,
+                execution_date TIMESTAMP NOT NULL,
+                team VARCHAR(100) NOT NULL,
+                events INTEGER,
+                avg_speed FLOAT,
+                avg_tire_wear FLOAT,
+                avg_pitstop_score FLOAT,
+                anomaly_rate FLOAT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+            """,
+            doc_md="Crée la table d'agrégation par équipe"
+        )
+
+        create_telemetry_table >> create_team_summary_table
         
         create_telemetry_table
     
@@ -518,17 +725,37 @@ with DAG(
     )
     
     # ========================================================================
-    # ÉTAPE 5: ARRÊT DES SERVICES
+    # ÉTAPE 5: CONTRÔLES QUALITÉ
     # ========================================================================
-    
+
+    with TaskGroup('data_quality', tooltip='Vérifications de fraîcheur et de couverture') as data_quality_group:
+
+        assert_recent_data = PythonOperator(
+            task_id='assert_recent_data',
+            python_callable=DataQuality.assert_recent_data,
+            doc_md="Valide la présence d'événements dans les 5 dernières minutes"
+        )
+
+        validate_team_coverage = PythonOperator(
+            task_id='validate_team_coverage',
+            python_callable=DataQuality.validate_team_coverage,
+            doc_md="Contrôle que les 10 équipes sont représentées"
+        )
+
+        assert_recent_data >> validate_team_coverage
+
+    # ========================================================================
+    # ÉTAPE 6: ARRÊT DES SERVICES
+    # ========================================================================
+
     stop_services = PythonOperator(
         task_id='stop_services',
         python_callable=ServiceManager.stop_services,
         doc_md="Arrête tous les services après la collecte"
     )
-    
+
     # ========================================================================
-    # ÉTAPE 6: ANALYSE BATCH
+    # ÉTAPE 7: ANALYSE BATCH
     # ========================================================================
     
     with TaskGroup('batch_analysis', tooltip='Analyse batch des données') as batch_analysis_group:
@@ -548,7 +775,7 @@ with DAG(
         compute_statistics >> analyze_pitstop_recommendations
     
     # ========================================================================
-    # ÉTAPE 7: NOTIFICATIONS
+    # ÉTAPE 8: NOTIFICATIONS
     # ========================================================================
     
     send_success_notification = PythonOperator(
@@ -558,7 +785,7 @@ with DAG(
     )
     
     # ========================================================================
-    # ÉTAPE 8: FIN
+    # ÉTAPE 9: FIN
     # ========================================================================
     
     end = DummyOperator(
@@ -571,7 +798,7 @@ with DAG(
     # ========================================================================
     
     start >> prepare_infra >> start_services_group >> wait_for_data_collection
-    wait_for_data_collection >> save_telemetry_data >> stop_services
+    wait_for_data_collection >> save_telemetry_data >> data_quality_group >> stop_services
     stop_services >> batch_analysis_group >> send_success_notification >> end
 
 

@@ -8,10 +8,11 @@ services:
       dockerfile: Dockerfile
     container_name: ferrari-sensor-simulator
     environment:
-      - TELEMETRY_MODE=http
+      - SIMULATION_MODE=championship
       - HTTP_ENDPOINT=http://ferrari-stream-processor:8001/telemetry
-      - TARGET_THROUGHPUT=1000
-      - SENSOR_INTERVAL=5
+      - TARGET_THROUGHPUT_PER_CAR=250
+      - STREAM_PROCESSOR_API_KEY_HEADER=X-Api-Key
+      - STREAM_PROCESSOR_API_KEY=${STREAM_PROCESSOR_API_KEY:-changeme}
     ports:
       - "8000:8000"
     depends_on:
@@ -29,6 +30,8 @@ services:
     environment:
       - PROCESSOR_MODE=rest
       - PORT=8001
+      - STREAM_PROCESSOR_API_KEY=${STREAM_PROCESSOR_API_KEY:-changeme}
+      - STREAM_PROCESSOR_API_KEY_HEADER=X-Api-Key
     ports:
       - "8001:8001"
     restart: unless-stopped
@@ -149,7 +152,11 @@ services:
       - grafana-data:/var/lib/grafana
       - ./monitoring/grafana-datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml
       - ./monitoring/grafana-dashboards-provisioning.yml:/etc/grafana/provisioning/dashboards/dashboards.yml
-      - ./monitoring/grafana_dashboard.json:/etc/grafana/dashboards/grafana_dashboard.json
+      - ./monitoring/grafana_dashboard_main.json:/etc/grafana/dashboards/main.json
+      - ./monitoring/grafana_dashboard_strategy.json:/etc/grafana/dashboards/strategy.json
+      - ./monitoring/grafana_dashboard_data.json:/etc/grafana/dashboards/data.json
+      - ./monitoring/grafana_dashboard_data_quality.json:/etc/grafana/dashboards/data_quality.json
+      - ./monitoring/grafana_dashboard_engineer.json:/etc/grafana/dashboards/engineer.json
     depends_on:
       - prometheus
     restart: unless-stopped

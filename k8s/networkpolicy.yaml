@@ -1,0 +1,45 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: ferrari-stream-processor-deny-all
+  namespace: ferrari-f1
+spec:
+  podSelector:
+    matchLabels:
+      app: stream-processor
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: sensor-simulator
+        - podSelector:
+            matchLabels:
+              app: airflow
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ferrari-f1-ops
+      ports:
+        - protocol: TCP
+          port: 8001
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              app: prometheus
+        - podSelector:
+            matchLabels:
+              app: postgres
+      ports:
+        - protocol: TCP
+          port: 9090
+        - protocol: TCP
+          port: 5432
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+      ports:
+        - protocol: TCP
+          port: 443

@@ -70,6 +70,7 @@
 - **Rôle** : Orchestration des workflows analytiques
 - **DAGs principaux** :
   - `ferrari_grand_prix_dag` : Pipeline d'analyse post-course
+    - collecte de télémétrie → persistance multi-équipes → contrôles Data Quality → agrégations → notification
   - ETL batch pour données historiques
   - Rapports automatisés de performance
 
@@ -81,6 +82,7 @@
   - Données Airflow (metadata, logs)
   - Stockage des résultats analytiques
   - Historique des performances Ferrari
+  - Table `telemetry_team_summary` pour suivre les comparaisons par écurie
 
 #### Redis
 - **Port** : 6379
@@ -117,6 +119,7 @@ PostgreSQL → Airflow DAGs → Rapports → PostgreSQL
 - **Horizontal** : Docker Swarm / Kubernetes ready
 - **Vertical** : Configuration CPU/RAM ajustable
 - **Cache** : Redis pour optimisation mémoire
+- **Autoscaling** : HPA (`k8s/stream-processor-hpa.yaml`) déclenche une montée en charge à partir de 60% CPU ou 200 msg/s par pod
 
 ## Sécurité
 
@@ -131,10 +134,12 @@ networks:
 - Variables d'environnement sécurisées
 - Pas de mots de passe hardcodés
 - Configuration externalisée
+- API key obligatoire sur le flux `/telemetry` (voir `STREAM_PROCESSOR_API_KEY`)
 
 ### Monitoring sécurisé
 - Endpoints métriques sans authentification (environnement dev)
 - Prêt pour intégration HTTPS/TLS en production
+- NetworkPolicy (`k8s/networkpolicy.yaml`) qui cloisonne le stream-processor sur Kubernetes
 
 ## Déploiement
 

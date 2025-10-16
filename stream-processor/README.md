@@ -33,6 +33,10 @@ KAFKA_TOPIC=ferrari-telemetry
 
 # Logging
 LOG_LEVEL=INFO
+
+# Sécurité
+STREAM_PROCESSOR_API_KEY=change-me-before-prod
+STREAM_PROCESSOR_API_KEY_HEADER=X-Api-Key
 ```
 
 ## Utilisation
@@ -78,6 +82,7 @@ Reçoit et traite un message de télémétrie
 ```bash
 curl -X POST http://localhost:8001/telemetry \
   -H "Content-Type: application/json" \
+  -H "X-Api-Key: change-me-before-prod" \
   -d @telemetry.json
 ```
 
@@ -152,14 +157,18 @@ Score pondéré (0-100) basé sur :
 - `ferrari_current_throughput_msg_per_sec`: Débit actuel
 - `ferrari_avg_processing_latency_ms`: Latence moyenne
 - `ferrari_active_anomalies`: Anomalies actives
-- `ferrari_pitstop_score`: Score pit-stop par voiture
+- `ferrari_pitstop_score`: Score pit-stop par voiture (labels `car_id`, `team`, `driver`)
 
 ## Exemple de réponse
 
 ```json
 {
   "status": "processed",
-  "car_id": "Ferrari-F1-75",
+  "team": "Scuderia Ferrari HP",
+  "driver": "Charles Leclerc",
+  "car_id": "SF24-16",
+  "car_number": 16,
+  "car_model": "SF-24",
   "lap": 15,
   "anomalies": [
     {
@@ -246,6 +255,7 @@ python main.py &
 # Envoyer un message de test
 curl -X POST http://localhost:8001/telemetry \
   -H "Content-Type: application/json" \
+  -H "X-Api-Key: change-me-before-prod" \
   -d '{
     "timestamp": "2025-10-14T10:30:00.000000Z",
     "car_id": "Ferrari-F1-75",

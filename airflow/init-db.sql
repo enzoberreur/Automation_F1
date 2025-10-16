@@ -22,6 +22,7 @@ CREATE TABLE IF NOT EXISTS telemetry_data (
     id SERIAL PRIMARY KEY,
     timestamp TIMESTAMP NOT NULL,
     car_id VARCHAR(50) NOT NULL,
+    team VARCHAR(100) NOT NULL,
     driver VARCHAR(100) NOT NULL,
     lap INTEGER,
     speed_kmh FLOAT,
@@ -38,6 +39,7 @@ CREATE TABLE IF NOT EXISTS telemetry_data (
 -- Créer les index pour optimiser les requêtes
 CREATE INDEX IF NOT EXISTS idx_telemetry_timestamp ON telemetry_data(timestamp);
 CREATE INDEX IF NOT EXISTS idx_telemetry_car_id ON telemetry_data(car_id);
+CREATE INDEX IF NOT EXISTS idx_telemetry_team ON telemetry_data(team);
 CREATE INDEX IF NOT EXISTS idx_telemetry_has_anomaly ON telemetry_data(has_anomaly);
 CREATE INDEX IF NOT EXISTS idx_telemetry_lap ON telemetry_data(lap);
 
@@ -65,10 +67,23 @@ CREATE TABLE IF NOT EXISTS pitstop_recommendations (
     id SERIAL PRIMARY KEY,
     execution_date TIMESTAMP NOT NULL,
     car_id VARCHAR(50) NOT NULL,
+    team VARCHAR(100) NOT NULL,
     lap INTEGER,
     score FLOAT,
     urgency VARCHAR(20),
     recommendation TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS telemetry_team_summary (
+    id SERIAL PRIMARY KEY,
+    execution_date TIMESTAMP NOT NULL,
+    team VARCHAR(100) NOT NULL,
+    events INTEGER,
+    avg_speed FLOAT,
+    avg_tire_wear FLOAT,
+    avg_pitstop_score FLOAT,
+    anomaly_rate FLOAT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 

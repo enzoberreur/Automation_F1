@@ -1,11 +1,12 @@
 {
   "dashboard": {
     "id": null,
-    "title": "Ferrari F1 - Strategy Command",
+    "uid": "ferrari-strategy-dashboard",
+    "title": "F1 Multi-Team - Strategy",
     "tags": [
       "strategy",
       "pitstop",
-      "ferrari"
+      "multi-team"
     ],
     "schemaVersion": 30,
     "version": 1,
@@ -31,7 +32,14 @@
           "label": "Car",
           "datasource": "Prometheus",
           "query": "label_values(ferrari_pitstop_score, car_id)",
-          "current": {}
+          "current": {
+            "text": "All",
+            "value": "$__all"
+          },
+          "multi": true,
+          "includeAll": true,
+          "allValue": ".*",
+          "refresh": 1
         }
       ]
     },
@@ -49,7 +57,7 @@
         "datasource": "Prometheus",
         "targets": [
           {
-            "expr": "avg_over_time(ferrari_pitstop_score[$interval])",
+            "expr": "avg_over_time(ferrari_pitstop_score{car_id=~\"$car_id\"}[$interval])",
             "refId": "A"
           }
         ],
@@ -95,7 +103,7 @@
         "datasource": "Prometheus",
         "targets": [
           {
-            "expr": "last_over_time(ferrari_simulator_lap_time_seconds[$interval])",
+            "expr": "last_over_time(ferrari_simulator_lap_time_seconds{car_id=~\"$car_id\"}[$interval])",
             "refId": "A"
           }
         ],
@@ -143,7 +151,7 @@
         "datasource": "Prometheus",
         "targets": [
           {
-            "expr": "last_over_time(ferrari_simulator_stint_health_score[$interval])",
+            "expr": "last_over_time(ferrari_simulator_stint_health_score{car_id=~\"$car_id\"}[$interval])",
             "refId": "A"
           }
         ],
@@ -193,7 +201,7 @@
         "datasource": "Prometheus",
         "targets": [
           {
-            "expr": "last_over_time(ferrari_simulator_pit_window_probability[$interval]) * 100",
+            "expr": "last_over_time(ferrari_simulator_pit_window_probability{car_id=~\"$car_id\"}[$interval]) * 100",
             "refId": "A"
           }
         ],
@@ -244,7 +252,8 @@
         "targets": [
           {
             "expr": "ferrari_pitstop_score{car_id=~\"$car_id\"}",
-            "refId": "A"
+            "refId": "A",
+            "legendFormat": "{{car_id}} {{driver}} · Pitstop score"
           }
         ],
         "options": {
@@ -272,13 +281,14 @@
         },
         "targets": [
           {
-            "expr": "ferrari_simulator_lap_time_seconds",
-            "refId": "A"
+            "expr": "ferrari_simulator_lap_time_seconds{car_id=~\"$car_id\"}",
+            "refId": "A",
+            "legendFormat": "{{car_id}} {{driver}} · Lap time"
           },
           {
-            "expr": "avg_over_time(ferrari_simulator_lap_time_seconds[5m])",
+            "expr": "avg_over_time(ferrari_simulator_lap_time_seconds{car_id=~\"$car_id\"}[5m])",
             "refId": "B",
-            "legendFormat": "Rolling avg (5m)"
+            "legendFormat": "{{car_id}} {{driver}} · Rolling avg (5m)"
           }
         ],
         "options": {
@@ -307,14 +317,14 @@
         },
         "targets": [
           {
-            "expr": "ferrari_simulator_stint_health_score",
+            "expr": "ferrari_simulator_stint_health_score{car_id=~\"$car_id\"}",
             "refId": "A",
-            "legendFormat": "Stint health"
+            "legendFormat": "{{car_id}} {{driver}} · Stint health"
           },
           {
-            "expr": "ferrari_simulator_pit_window_probability * 100",
+            "expr": "ferrari_simulator_pit_window_probability{car_id=~\"$car_id\"} * 100",
             "refId": "B",
-            "legendFormat": "Pit window %"
+            "legendFormat": "{{car_id}} {{driver}} · Pit window %"
           }
         ],
         "options": {
@@ -336,13 +346,14 @@
         "datasource": "Prometheus",
         "targets": [
           {
-            "expr": "avg_over_time(ferrari_simulator_tire_wear_percent[$interval])",
-            "refId": "A"
+            "expr": "avg_over_time(ferrari_simulator_tire_wear_percent{car_id=~\"$car_id\"}[$interval])",
+            "refId": "A",
+            "legendFormat": "{{car_id}} {{driver}} · Tire wear"
           },
           {
-            "expr": "avg_over_time(ferrari_simulator_tire_wear_percent[30m]) + increase(ferrari_simulator_tire_wear_percent[30m]) * (300/1800)",
+            "expr": "avg_over_time(ferrari_simulator_tire_wear_percent{car_id=~\"$car_id\"}[30m]) + increase(ferrari_simulator_tire_wear_percent{car_id=~\"$car_id\"}[30m]) * (300/1800)",
             "refId": "B",
-            "legendFormat": "Projection (5m)"
+            "legendFormat": "{{car_id}} {{driver}} · Projection (5m)"
           }
         ]
       },
@@ -359,12 +370,14 @@
         "datasource": "Prometheus",
         "targets": [
           {
-            "expr": "ferrari_simulator_ers_power_kw",
-            "refId": "A"
+            "expr": "ferrari_simulator_ers_power_kw{car_id=~\"$car_id\"}",
+            "refId": "A",
+            "legendFormat": "{{car_id}} {{driver}} · ERS power"
           },
           {
-            "expr": "ferrari_simulator_engine_temp_celsius",
-            "refId": "B"
+            "expr": "ferrari_simulator_engine_temp_celsius{car_id=~\"$car_id\"}",
+            "refId": "B",
+            "legendFormat": "{{car_id}} {{driver}} · Engine temp"
           }
         ]
       },
@@ -381,8 +394,8 @@
         "datasource": "Prometheus",
         "targets": [
           {
-            "expr": "ferrari_simulator_surface_condition_state",
-            "legendFormat": "Surface",
+            "expr": "ferrari_simulator_surface_condition_state{car_id=~\"$car_id\"}",
+            "legendFormat": "{{car_id}} {{driver}} · Surface",
             "refId": "A"
           }
         ],
@@ -452,8 +465,8 @@
         "datasource": "Prometheus",
         "targets": [
           {
-            "expr": "ferrari_simulator_strategy_recommendation_state",
-            "legendFormat": "Recommendation",
+            "expr": "ferrari_simulator_strategy_recommendation_state{car_id=~\"$car_id\"}",
+            "legendFormat": "{{car_id}} {{driver}} · Recommendation",
             "refId": "A"
           }
         ],
@@ -516,32 +529,32 @@
         "datasource": "Prometheus",
         "targets": [
           {
-            "expr": "last_over_time(ferrari_simulator_lap[$interval])",
+            "expr": "last_over_time(ferrari_simulator_lap{car_id=~\"$car_id\"}[$interval])",
             "refId": "F",
             "format": "table"
           },
           {
-            "expr": "last_over_time(ferrari_simulator_lap_time_seconds[$interval])",
+            "expr": "last_over_time(ferrari_simulator_lap_time_seconds{car_id=~\"$car_id\"}[$interval])",
             "refId": "A",
             "format": "table"
           },
           {
-            "expr": "last_over_time(ferrari_simulator_stint_health_score[$interval])",
+            "expr": "last_over_time(ferrari_simulator_stint_health_score{car_id=~\"$car_id\"}[$interval])",
             "refId": "B",
             "format": "table"
           },
           {
-            "expr": "last_over_time(ferrari_simulator_pit_window_probability[$interval])",
+            "expr": "last_over_time(ferrari_simulator_pit_window_probability{car_id=~\"$car_id\"}[$interval])",
             "refId": "C",
             "format": "table"
           },
           {
-            "expr": "topk(1, ferrari_simulator_surface_condition_info)",
+            "expr": "topk(1, ferrari_simulator_surface_condition_info{car_id=~\"$car_id\"})",
             "refId": "D",
             "format": "table"
           },
           {
-            "expr": "topk(1, ferrari_simulator_strategy_recommendation_info)",
+            "expr": "topk(1, ferrari_simulator_strategy_recommendation_info{car_id=~\"$car_id\"})",
             "refId": "E",
             "format": "table"
           }
