@@ -28,7 +28,7 @@ Cette commande :
 
 > ℹ️ Les identifiants par défaut sont `admin / admin` pour Grafana et Airflow.
 
-Une fois le stack prêt, accédez au poste de commande principal : <http://localhost:3000/d/ferrari-f1-dashboard>.
+Une fois le stack prêt, accédez au poste de commande principal : <http://localhost:3000/d/ferrari-strategy-dashboard>.
 
 Pour arrêter et nettoyer :
 
