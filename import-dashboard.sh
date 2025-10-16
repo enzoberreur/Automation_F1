@@ -1,134 +1,92 @@
-#!/bin/bash
+#!/usr/bin/env bash
+set -euo pipefail
 
-# Script pour importer le dashboard Ferrari F1 ULTIMATE dans Grafana
-# Usage: ./import-dashboard.sh [--silent]
-
-SILENT=""
-
-# Parse arguments
-for arg in "$@"; do
-    case $arg in
-        --silent)
-            SILENT="--silent"
-            ;;
-    esac
-done
+SILENT=0
+if [[ "${1:-}" == "--silent" ]]; then
+  SILENT=1
+fi
 
 log() {
-    if [ "$SILENT" != "--silent" ]; then
-        echo "$1"
-    fi
+  if [[ $SILENT -eq 0 ]]; then
+    echo "$1"
+  fi
 }
 
-log "� Import du Ferrari F1 ULTIMATE Command Center Dashboard..."
+GRAFANA_URL=${GRAFANA_URL:-http://localhost:3000}
+GRAFANA_USER=${GRAFANA_USER:-admin}
+GRAFANA_PASSWORD=${GRAFANA_PASSWORD:-admin}
 
-# Attendre que Grafana soit prêt
-log "⏳ Attente que Grafana soit prêt..."
-timeout=60
-while [ $timeout -gt 0 ]; do
-    if curl -s -f http://localhost:3000/api/health >/dev/null 2>&1; then
-        log "✅ Grafana est prêt!"
-        break
+log "Importing Grafana dashboards..."
+
+wait_for_grafana() {
+  local attempt=1
+  local max_attempts=60
+
+  while (( attempt <= max_attempts )); do
+    if curl -sf "${GRAFANA_URL}/api/health" >/dev/null 2>&1; then
+      return 0
     fi
+
+    if [[ $SILENT -eq 0 ]]; then
+      echo "Waiting for Grafana (${attempt}/${max_attempts})..."
+    fi
+
     sleep 2
-    timeout=$((timeout-2))
-done
+    attempt=$((attempt + 1))
+  done
 
-if [ $timeout -le 0 ]; then
-    log "❌ Timeout: Grafana non accessible"
-    exit 1
-fi
-
-check_dashboard_exists() {
-    local dashboard_uid=$1
-    local dashboard_name=$2
-    
-    response=$(curl -s -u admin:admin "http://localhost:3000/api/dashboards/uid/$dashboard_uid")
-    
-    if echo "$response" | grep -q '"dashboard"'; then
-        log "✅ $dashboard_name existe déjà (pas de re-import)"
-        return 0
-    else
-        return 1
-    fi
+  return 1
 }
+
+if ! wait_for_grafana; then
+  log "Grafana is not reachable"
+  exit 1
+fi
 
 import_dashboard() {
-    local dashboard_file=$1
-    local dashboard_name=$2
-    local expected_uid=$3
-    
-    # Vérifier si le dashboard existe déjà
-    if [ -n "$expected_uid" ] && check_dashboard_exists "$expected_uid" "$dashboard_name"; then
-        if [ "$SILENT" != "--silent" ]; then
-            echo "🔗 $dashboard_name: http://localhost:3000/d/$expected_uid"
-        fi
-        return 0
-    fi
-    
-    log "📊 Import du $dashboard_name..."
+  local file=$1
+  local name=$2
 
-    # Préparer le payload : Grafana accepte {"dashboard": <dashboard>, "overwrite": true}
-    # Si le fichier contient déjà la clé "dashboard", on l'utilise tel quel.
-    payload=$(mktemp)
-    python3 - "$dashboard_file" > "$payload" <<'PY'
-import json,sys
-f=sys.argv[1]
-obj=json.load(open(f))
-if isinstance(obj, dict) and 'dashboard' in obj:
-    print(json.dumps(obj))
+  tmp_payload=$(mktemp)
+  python3 - "$file" >"$tmp_payload" <<'PY'
+import json
+import sys
+path = sys.argv[1]
+data = json.load(open(path))
+if isinstance(data, dict) and 'dashboard' in data:
+    data['overwrite'] = True
 else:
-    print(json.dumps({'dashboard': obj, 'overwrite': True}))
+    data = {'dashboard': data, 'overwrite': True}
+json.dump(data, sys.stdout)
 PY
 
-    response=$(curl -s -X POST \
-      http://localhost:3000/api/dashboards/db \
-      -H 'Content-Type: application/json' \
-      -u admin:admin \
-      -d @"$payload")
-    rm -f "$payload"
-    
-    # Vérifier si l'import a réussi
-    if echo "$response" | grep -q '"status":"success"'; then
-        log "✅ $dashboard_name importé avec succès!"
-        if [ "$SILENT" != "--silent" ]; then
-            # Extraire l'URL du dashboard
-            dashboard_uid=$(echo "$response" | grep -o '"uid":"[^"]*"' | cut -d'"' -f4)
-            if [ -n "$dashboard_uid" ]; then
-                echo "🔗 $dashboard_name: http://localhost:3000/d/$dashboard_uid"
-            fi
-        fi
-        return 0
-    elif echo "$response" | grep -q "already exists"; then
-        log "ℹ️  $dashboard_name déjà existant"
-        return 0
-    else
-        log "❌ Erreur lors de l'import du $dashboard_name"
-        if [ "$SILENT" != "--silent" ]; then
-            echo "API response: $response"
-        fi
-        return 1
+  if ! response=$(curl -fsS -X POST \
+    "${GRAFANA_URL}/api/dashboards/db" \
+    -H 'Content-Type: application/json' \
+    -u "${GRAFANA_USER}:${GRAFANA_PASSWORD}" \
+    --data-binary "@${tmp_payload}" 2>&1); then
+    if [[ $SILENT -eq 0 ]]; then
+      echo "Failed to import ${name}: ${response}" >&2
     fi
+    rm -f "$tmp_payload"
+    return 1
+  fi
+  rm -f "$tmp_payload"
+
+  if echo "$response" | grep -q '"status":"success"'; then
+    if [[ $SILENT -eq 0 ]]; then
+      echo "Imported ${name}"
+    fi
+    return 0
+  fi
+
+  if [[ $SILENT -eq 0 ]]; then
+    echo "Failed to import ${name}: ${response}" >&2
+  fi
+  return 1
 }
 
-# Import du dashboard Thermal Demo avec vérification d'existence
-log "📊 Import du dashboard Ferrari F1 Monitoring"
-import_dashboard "monitoring/grafana_dashboard.json" "Ferrari F1 IoT - Smart Pit Stop Monitoring Dashboard" "ferrari-f1-dashboard"
+import_dashboard monitoring/grafana_dashboard_main.json "F1 Multi-Team - Main Operations"
+import_dashboard monitoring/grafana_dashboard_strategy.json "F1 Multi-Team - Strategy"
 
-log ""
-if [ "$SILENT" != "--silent" ]; then
-    echo "🌡️ FERRARI F1 THERMAL COCKPIT DEMO PRÊT!"
-    echo "┌─────────────────────────────────────────────────────────┐"
-    echo "│ 🌡️ Thermal Demo:       http://localhost:3000/d/ferr... │"
-    echo "│ 🏆 Ultimate Backup:     http://localhost:3000/d/278...  │"
-    echo "│ 🔐 Login:               admin / admin                   │"
-    echo "│                                                         │"
-    echo "│ 🔥 THERMAL COCKPIT FEATURES (DEMO):                    │"
-    echo "│ • 🌡️ Thermal performance simulation                   │"
-    echo "│ • ⚡ Energy flow heatmap                               │"
-    echo "│ • 🏁 Performance radar (4 dimensions)                 │"
-    echo "│ • 🔮 Predictive pit-stop strategy                     │"
-    echo "│ • 📈 Real-time efficiency score (0-100)              │"
-    echo "│ • 🚨 System thermal load monitoring                   │"
-    echo "└─────────────────────────────────────────────────────────┘"
-fi
+exit 0

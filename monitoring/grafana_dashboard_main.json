@@ -2,7 +2,7 @@
   "dashboard": {
     "id": null,
     "uid": "ferrari-main-dashboard",
-    "title": "Ferrari F1 - Main Operations",
+    "title": "F1 Multi-Team - Main Operations",
     "tags": [
       "ferrari",
       "ops",
@@ -22,7 +22,14 @@
           "label": "Car",
           "datasource": "Prometheus",
           "query": "label_values(ferrari_pitstop_score, car_id)",
-          "current": {}
+          "current": {
+            "text": "All",
+            "value": "$__all"
+          },
+          "multi": true,
+          "includeAll": true,
+          "allValue": ".*",
+          "refresh": 1
         },
         {
           "type": "interval",
@@ -74,11 +81,11 @@
         "datasource": "Prometheus",
         "targets": [
           {
-            "expr": "sum(rate(ferrari_simulator_messages_sent_total[1m]))",
+            "expr": "sum(rate(ferrari_simulator_messages_sent_total{car_id=~\"$car_id\"}[1m]))",
             "refId": "A"
           },
           {
-            "expr": "ferrari_simulator_current_throughput_msg_per_sec",
+            "expr": "sum(ferrari_simulator_current_throughput_msg_per_sec{car_id=~\"$car_id\"})",
             "refId": "B"
           }
         ],
@@ -103,7 +110,7 @@
         "datasource": "Prometheus",
         "targets": [
           {
-            "expr": "avg_over_time(ferrari_pitstop_score[1h])",
+            "expr": "avg_over_time(ferrari_pitstop_score{car_id=~\"$car_id\"}[1h])",
             "refId": "A"
           }
         ],
@@ -132,7 +139,7 @@
       {
         "id": 4,
         "type": "stat",
-        "title": "Engine temp (max °C)",
+        "title": "Engine temp (max \u00b0C)",
         "gridPos": {
           "h": 3,
           "w": 4,
@@ -142,7 +149,7 @@
         "datasource": "Prometheus",
         "targets": [
           {
-            "expr": "max_over_time(ferrari_simulator_engine_temp_celsius[5m])",
+            "expr": "max_over_time(ferrari_simulator_engine_temp_celsius{car_id=~\"$car_id\"}[5m])",
             "refId": "A"
           }
         ]
@@ -160,7 +167,7 @@
         "datasource": "Prometheus",
         "targets": [
           {
-            "expr": "count(ferrari_active_anomalies) or vector(0)",
+            "expr": "sum(ferrari_active_anomalies{car_id=~\"$car_id\"}) or vector(0)",
             "refId": "A"
           }
         ]
@@ -178,7 +185,7 @@
         "datasource": "Prometheus",
         "targets": [
           {
-            "expr": "ferrari_simulator_fuel_remaining_kg",
+            "expr": "sum(ferrari_simulator_fuel_remaining_kg{car_id=~\"$car_id\"})",
             "refId": "A"
           }
         ]
@@ -207,7 +214,7 @@
         "datasource": "Prometheus",
         "targets": [
           {
-            "expr": "sum(rate(ferrari_simulator_messages_sent_total[1m]))",
+            "expr": "sum(rate(ferrari_simulator_messages_sent_total{car_id=~\"$car_id\"}[1m]))",
             "refId": "A"
           }
         ],
@@ -230,8 +237,9 @@
         "datasource": "Prometheus",
         "targets": [
           {
-            "expr": "ferrari_pitstop_score",
-            "refId": "A"
+            "expr": "ferrari_pitstop_score{car_id=~\"$car_id\"}",
+            "refId": "A",
+            "legendFormat": "{{car_id}} {{driver}} · Pitstop score"
           }
         ]
       },
@@ -248,8 +256,9 @@
         "datasource": "Prometheus",
         "targets": [
           {
-            "expr": "ferrari_simulator_engine_temp_celsius",
-            "refId": "A"
+            "expr": "ferrari_simulator_engine_temp_celsius{car_id=~\"$car_id\"}",
+            "refId": "A",
+            "legendFormat": "{{car_id}} {{driver}} · Engine temp"
           }
         ]
       },
@@ -371,15 +380,15 @@
         "datasource": "Prometheus",
         "targets": [
           {
-            "expr": "histogram_quantile(0.5, sum(rate(ferrari_simulator_send_latency_seconds_bucket[1m])) by (le))",
+            "expr": "histogram_quantile(0.5, sum(rate(ferrari_simulator_send_latency_seconds_bucket{car_id=~\"$car_id\"}[1m])) by (le))",
             "refId": "A"
           },
           {
-            "expr": "histogram_quantile(0.95, sum(rate(ferrari_simulator_send_latency_seconds_bucket[5m])) by (le))",
+            "expr": "histogram_quantile(0.95, sum(rate(ferrari_simulator_send_latency_seconds_bucket{car_id=~\"$car_id\"}[5m])) by (le))",
             "refId": "B"
           },
           {
-            "expr": "histogram_quantile(0.99, sum(rate(ferrari_simulator_send_latency_seconds_bucket[5m])) by (le))",
+            "expr": "histogram_quantile(0.99, sum(rate(ferrari_simulator_send_latency_seconds_bucket{car_id=~\"$car_id\"}[5m])) by (le))",
             "refId": "C"
           }
         ]
@@ -397,7 +406,7 @@
         "datasource": "Prometheus",
         "targets": [
           {
-            "expr": "sum(rate(ferrari_simulator_send_latency_seconds_bucket[5m])) by (le)",
+            "expr": "sum(rate(ferrari_simulator_send_latency_seconds_bucket{car_id=~\"$car_id\"}[5m])) by (le)",
             "refId": "A"
           }
         ]
@@ -426,20 +435,24 @@
         "datasource": "Prometheus",
         "targets": [
           {
-            "expr": "ferrari_simulator_brake_temp_fl_celsius",
-            "refId": "A"
+            "expr": "ferrari_simulator_brake_temp_fl_celsius{car_id=~\"$car_id\"}",
+            "refId": "A",
+            "legendFormat": "{{car_id}} {{driver}} · Brake FL"
           },
           {
-            "expr": "ferrari_simulator_brake_temp_fr_celsius",
-            "refId": "B"
+            "expr": "ferrari_simulator_brake_temp_fr_celsius{car_id=~\"$car_id\"}",
+            "refId": "B",
+            "legendFormat": "{{car_id}} {{driver}} · Brake FR"
           },
           {
-            "expr": "ferrari_simulator_brake_temp_rl_celsius",
-            "refId": "C"
+            "expr": "ferrari_simulator_brake_temp_rl_celsius{car_id=~\"$car_id\"}",
+            "refId": "C",
+            "legendFormat": "{{car_id}} {{driver}} · Brake RL"
           },
           {
-            "expr": "ferrari_simulator_brake_temp_rr_celsius",
-            "refId": "D"
+            "expr": "ferrari_simulator_brake_temp_rr_celsius{car_id=~\"$car_id\"}",
+            "refId": "D",
+            "legendFormat": "{{car_id}} {{driver}} · Brake RR"
           }
         ]
       },
@@ -456,20 +469,24 @@
         "datasource": "Prometheus",
         "targets": [
           {
-            "expr": "ferrari_simulator_tire_temp_fl_celsius",
-            "refId": "A"
+            "expr": "ferrari_simulator_tire_temp_fl_celsius{car_id=~\"$car_id\"}",
+            "refId": "A",
+            "legendFormat": "{{car_id}} {{driver}} · Tire FL"
           },
           {
-            "expr": "ferrari_simulator_tire_temp_fr_celsius",
-            "refId": "B"
+            "expr": "ferrari_simulator_tire_temp_fr_celsius{car_id=~\"$car_id\"}",
+            "refId": "B",
+            "legendFormat": "{{car_id}} {{driver}} · Tire FR"
           },
           {
-            "expr": "ferrari_simulator_tire_temp_rl_celsius",
-            "refId": "C"
+            "expr": "ferrari_simulator_tire_temp_rl_celsius{car_id=~\"$car_id\"}",
+            "refId": "C",
+            "legendFormat": "{{car_id}} {{driver}} · Tire RL"
           },
           {
-            "expr": "ferrari_simulator_tire_temp_rr_celsius",
-            "refId": "D"
+            "expr": "ferrari_simulator_tire_temp_rr_celsius{car_id=~\"$car_id\"}",
+            "refId": "D",
+            "legendFormat": "{{car_id}} {{driver}} · Tire RR"
           }
         ]
       },
@@ -486,7 +503,7 @@
         "datasource": "Prometheus",
         "targets": [
           {
-            "expr": "avg(ferrari_simulator_tire_wear_percent)",
+            "expr": "avg(ferrari_simulator_tire_wear_percent{car_id=~\"$car_id\"})",
             "refId": "A"
           }
         ]
@@ -504,7 +521,7 @@
         "datasource": "Prometheus",
         "targets": [
           {
-            "expr": "max(ferrari_simulator_tire_wear_percent)",
+            "expr": "max(ferrari_simulator_tire_wear_percent{car_id=~\"$car_id\"})",
             "refId": "A"
           }
         ]
@@ -522,12 +539,14 @@
         "datasource": "Prometheus",
         "targets": [
           {
-            "expr": "(max_over_time(ferrari_simulator_brake_temp_fl_celsius[5m]) or vector(0)) - (min_over_time(ferrari_simulator_brake_temp_fl_celsius[5m]) or vector(0))",
-            "refId": "A"
+            "expr": "(max_over_time(ferrari_simulator_brake_temp_fl_celsius{car_id=~\"$car_id\"}[5m]) or vector(0)) - (min_over_time(ferrari_simulator_brake_temp_fl_celsius{car_id=~\"$car_id\"}[5m]) or vector(0))",
+            "refId": "A",
+            "legendFormat": "{{car_id}} {{driver}} · ΔBrake FL"
           },
           {
-            "expr": "(max_over_time(ferrari_simulator_brake_temp_fr_celsius[5m]) or vector(0)) - (min_over_time(ferrari_simulator_brake_temp_fr_celsius[5m]) or vector(0))",
-            "refId": "B"
+            "expr": "(max_over_time(ferrari_simulator_brake_temp_fr_celsius{car_id=~\"$car_id\"}[5m]) or vector(0)) - (min_over_time(ferrari_simulator_brake_temp_fr_celsius{car_id=~\"$car_id\"}[5m]) or vector(0))",
+            "refId": "B",
+            "legendFormat": "{{car_id}} {{driver}} · ΔBrake FR"
           }
         ]
       },
@@ -544,8 +563,9 @@
         "datasource": "Prometheus",
         "targets": [
           {
-            "expr": "(max_over_time(ferrari_simulator_tire_temp_fl_celsius[5m]) or vector(0)) - (min_over_time(ferrari_simulator_tire_temp_fl_celsius[5m]) or vector(0))",
-            "refId": "A"
+            "expr": "(max_over_time(ferrari_simulator_tire_temp_fl_celsius{car_id=~\"$car_id\"}[5m]) or vector(0)) - (min_over_time(ferrari_simulator_tire_temp_fl_celsius{car_id=~\"$car_id\"}[5m]) or vector(0))",
+            "refId": "A",
+            "legendFormat": "{{car_id}} {{driver}} · ΔT tire FL"
           }
         ]
       },
@@ -562,8 +582,9 @@
         "datasource": "Prometheus",
         "targets": [
           {
-            "expr": "(max_over_time(ferrari_simulator_tire_pressure_fl_psi[5m]) or vector(0)) - (min_over_time(ferrari_simulator_tire_pressure_fl_psi[5m]) or vector(0))",
-            "refId": "A"
+            "expr": "(max_over_time(ferrari_simulator_tire_pressure_fl_psi{car_id=~\"$car_id\"}[5m]) or vector(0)) - (min_over_time(ferrari_simulator_tire_pressure_fl_psi{car_id=~\"$car_id\"}[5m]) or vector(0))",
+            "refId": "A",
+            "legendFormat": "{{car_id}} {{driver}} · ΔPressure FL"
           }
         ]
       },
@@ -591,13 +612,14 @@
         "datasource": "Prometheus",
         "targets": [
           {
-            "expr": "avg_over_time(ferrari_simulator_tire_wear_percent[30m])",
-            "refId": "A"
+            "expr": "avg_over_time(ferrari_simulator_tire_wear_percent{car_id=~\"$car_id\"}[30m])",
+            "refId": "A",
+            "legendFormat": "{{car_id}} {{driver}} · Tire wear avg"
           },
           {
-            "expr": "avg_over_time(ferrari_simulator_tire_wear_percent[30m]) + increase(ferrari_simulator_tire_wear_percent[30m]) / 1800 * 900",
+            "expr": "avg_over_time(ferrari_simulator_tire_wear_percent{car_id=~\"$car_id\"}[30m]) + increase(ferrari_simulator_tire_wear_percent{car_id=~\"$car_id\"}[30m]) / 1800 * 900",
             "refId": "B",
-            "legendFormat": "projection_15m"
+            "legendFormat": "{{car_id}} {{driver}} · Projection 15m"
           }
         ]
       },
@@ -613,8 +635,8 @@
         },
         "targets": [
           {
-            "expr": "ferrari_simulator_strategy_recommendation_state",
-            "legendFormat": "Recommendation",
+            "expr": "ferrari_simulator_strategy_recommendation_state{car_id=~\"$car_id\"}",
+            "legendFormat": "{{car_id}} {{driver}} · Recommendation",
             "refId": "A"
           }
         ],
@@ -677,12 +699,14 @@
         "datasource": "Prometheus",
         "targets": [
           {
-            "expr": "ferrari_simulator_ers_power_kw",
-            "refId": "A"
+            "expr": "ferrari_simulator_ers_power_kw{car_id=~\"$car_id\"}",
+            "refId": "A",
+            "legendFormat": "{{car_id}} {{driver}} · ERS power"
           },
           {
-            "expr": "ferrari_simulator_engine_temp_celsius",
-            "refId": "B"
+            "expr": "ferrari_simulator_engine_temp_celsius{car_id=~\"$car_id\"}",
+            "refId": "B",
+            "legendFormat": "{{car_id}} {{driver}} · Engine temp"
           }
         ]
       },
@@ -699,14 +723,14 @@
         "datasource": "Prometheus",
         "targets": [
           {
-            "expr": "ferrari_simulator_lap_time_seconds",
+            "expr": "ferrari_simulator_lap_time_seconds{car_id=~\"$car_id\"}",
             "refId": "A",
-            "legendFormat": "Lap time (s)"
+            "legendFormat": "{{car_id}} {{driver}} · Lap time (s)"
           },
           {
-            "expr": "ferrari_simulator_pit_window_probability * 100",
+            "expr": "ferrari_simulator_pit_window_probability{car_id=~\"$car_id\"} * 100",
             "refId": "B",
-            "legendFormat": "Pit window %"
+            "legendFormat": "{{car_id}} {{driver}} · Pit window %"
           }
         ],
         "fieldConfig": {
@@ -760,12 +784,12 @@
         "datasource": "Prometheus",
         "targets": [
           {
-            "expr": "time() - timestamp(ferrari_simulator_current_throughput_msg_per_sec)",
+            "expr": "time() - timestamp(ferrari_simulator_current_throughput_msg_per_sec{car_id=~\"$car_id\"})",
             "refId": "A",
             "format": "table"
           },
           {
-            "expr": "time() - timestamp(ferrari_simulator_engine_temp_celsius)",
+            "expr": "time() - timestamp(ferrari_simulator_engine_temp_celsius{car_id=~\"$car_id\"})",
             "refId": "B",
             "format": "table"
           }
@@ -784,7 +808,7 @@
         "datasource": "Prometheus",
         "targets": [
           {
-            "expr": "absent(ferrari_simulator_current_throughput_msg_per_sec)",
+            "expr": "absent(ferrari_simulator_current_throughput_msg_per_sec{car_id=~\"$car_id\"})",
             "refId": "A"
           }
         ]
@@ -802,7 +826,7 @@
         "datasource": "Prometheus",
         "targets": [
           {
-            "expr": "count(count by (car_id) (ferrari_pitstop_score))",
+            "expr": "count(count by (car_id) (ferrari_pitstop_score{car_id=~\"$car_id\"}))",
             "refId": "A"
           }
         ]
@@ -820,11 +844,100 @@
         "datasource": "Prometheus",
         "targets": [
           {
-            "expr": "resets(ferrari_simulator_messages_sent_total[1h])",
+            "expr": "resets(ferrari_simulator_messages_sent_total{car_id=~\"$car_id\"}[1h])",
             "refId": "A",
             "format": "table"
           }
         ]
+      },
+      {
+        "id": 36,
+        "type": "row",
+        "title": "Team comparison",
+        "gridPos": {
+          "h": 1,
+          "w": 24,
+          "x": 0,
+          "y": 49
+        }
+      },
+      {
+        "id": 37,
+        "type": "timeseries",
+        "title": "Average speed by team",
+        "datasource": "Prometheus",
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 50
+        },
+        "targets": [
+          {
+            "expr": "avg by (team) (ferrari_simulator_speed_kmh{car_id=~\"$car_id\"})",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "velocitykmh",
+            "custom": {
+              "drawStyle": "line",
+              "lineInterpolation": "smooth",
+              "lineWidth": 2,
+              "showPoints": "auto"
+            }
+          },
+          "overrides": []
+        },
+        "options": {
+          "legend": {
+            "displayMode": "table",
+            "placement": "bottom"
+          },
+          "tooltip": {
+            "mode": "multi"
+          }
+        }
+      },
+      {
+        "id": 38,
+        "type": "timeseries",
+        "title": "Average tire wear by team",
+        "datasource": "Prometheus",
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 50
+        },
+        "targets": [
+          {
+            "expr": "avg by (team) (ferrari_simulator_tire_wear_percent{car_id=~\"$car_id\"})",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "custom": {
+              "drawStyle": "line",
+              "lineInterpolation": "smooth",
+              "lineWidth": 2,
+              "showPoints": "auto"
+            }
+          },
+          "overrides": []
+        },
+        "options": {
+          "legend": {
+            "displayMode": "table",
+            "placement": "bottom"
+          },
+          "tooltip": {
+            "mode": "multi"
+          }
+        }
       }
     ]
   },
