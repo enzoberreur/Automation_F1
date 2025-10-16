@@ -2,7 +2,7 @@
 
 COMPOSE ?= docker compose
 
-.PHONY: help start stop clean import-dashboards
+.PHONY: help start stop clean import-dashboards demo-links
 
 help: ## Show available commands
 	@echo "Available targets:"
@@ -22,5 +22,16 @@ clean: ## Remove containers, volumes and Python caches
 
 import-dashboards: ## Reload Grafana dashboards
 	./import-dashboard.sh
+
+demo-links: ## Print URLs for demo dashboards and services
+	@echo "Ferrari F1 demo endpoints:"
+	@echo "  Grafana dashboards:       http://localhost:3000"
+	@echo "    Strategy cockpit:      http://localhost:3000/d/ferrari-strategy-dashboard"
+	@echo "  Airflow web UI:          http://localhost:8080"
+	@echo "  Prometheus console:      http://localhost:9090"
+	@echo "  cAdvisor metrics:        http://localhost:8082"
+	@echo "  Sensor simulator metrics: http://localhost:8000/metrics"
+	@echo "  Stream processor API:    http://localhost:8001"
+	@echo "  PostgreSQL connection:   postgresql://airflow:airflow@postgres:5432/airflow (inside Docker network)"
 
 .DEFAULT_GOAL := help
