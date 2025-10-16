@@ -39,32 +39,10 @@ if [ $timeout -le 0 ]; then
     exit 1
 fi
 
-check_dashboard_exists() {
-    local dashboard_uid=$1
-    local dashboard_name=$2
-    
-    response=$(curl -s -u admin:admin "http://localhost:3000/api/dashboards/uid/$dashboard_uid")
-    
-    if echo "$response" | grep -q '"dashboard"'; then
-        log "✅ $dashboard_name existe déjà (pas de re-import)"
-        return 0
-    else
-        return 1
-    fi
-}
-
 import_dashboard() {
     local dashboard_file=$1
     local dashboard_name=$2
     local expected_uid=$3
-    
-    # Vérifier si le dashboard existe déjà
-    if [ -n "$expected_uid" ] && check_dashboard_exists "$expected_uid" "$dashboard_name"; then
-        if [ "$SILENT" != "--silent" ]; then
-            echo "🔗 $dashboard_name: http://localhost:3000/d/$expected_uid"
-        fi
-        return 0
-    fi
     
     log "📊 Import du $dashboard_name..."
 
@@ -76,6 +54,7 @@ import json,sys
 f=sys.argv[1]
 obj=json.load(open(f))
 if isinstance(obj, dict) and 'dashboard' in obj:
+    obj['overwrite'] = True
     print(json.dumps(obj))
 else:
     print(json.dumps({'dashboard': obj, 'overwrite': True}))
@@ -96,11 +75,10 @@ PY
             dashboard_uid=$(echo "$response" | grep -o '"uid":"[^"]*"' | cut -d'"' -f4)
             if [ -n "$dashboard_uid" ]; then
                 echo "🔗 $dashboard_name: http://localhost:3000/d/$dashboard_uid"
+            elif [ -n "$expected_uid" ]; then
+                echo "🔗 $dashboard_name: http://localhost:3000/d/$expected_uid"
             fi
         fi
-        return 0
-    elif echo "$response" | grep -q "already exists"; then
-        log "ℹ️  $dashboard_name déjà existant"
         return 0
     else
         log "❌ Erreur lors de l'import du $dashboard_name"
@@ -111,7 +89,7 @@ PY
     fi
 }
 
-# Import des dashboards multi-écuries avec vérification d'existence
+# Import des dashboards multi-écuries (écrasement automatique pour capter les mises à jour)
 log "📊 Import des dashboards multi-écuries"
 import_dashboard "monitoring/grafana_dashboard_main.json" "F1 Multi-Team - Main Operations" "ferrari-main-dashboard"
 import_dashboard "monitoring/grafana_dashboard_strategy.json" "F1 Multi-Team - Strategy" "ferrari-strategy-dashboard"
