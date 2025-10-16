@@ -18,15 +18,27 @@ GRAFANA_PASSWORD=${GRAFANA_PASSWORD:-admin}
 
 log "Importing Grafana dashboards..."
 
-# Wait until Grafana is reachable
-for _ in {1..60}; do
-  if curl -sSf "${GRAFANA_URL}/api/health" >/dev/null; then
-    break
-  fi
-  sleep 2
-done
+wait_for_grafana() {
+  local attempt=1
+  local max_attempts=60
 
-if ! curl -sSf "${GRAFANA_URL}/api/health" >/dev/null; then
+  while (( attempt <= max_attempts )); do
+    if curl -sf "${GRAFANA_URL}/api/health" >/dev/null 2>&1; then
+      return 0
+    fi
+
+    if [[ $SILENT -eq 0 ]]; then
+      echo "Waiting for Grafana (${attempt}/${max_attempts})..."
+    fi
+
+    sleep 2
+    attempt=$((attempt + 1))
+  done
+
+  return 1
+}
+
+if ! wait_for_grafana; then
   log "Grafana is not reachable"
   exit 1
 fi
@@ -48,11 +60,17 @@ else:
 json.dump(data, sys.stdout)
 PY
 
-  response=$(curl -sS -X POST \
+  if ! response=$(curl -fsS -X POST \
     "${GRAFANA_URL}/api/dashboards/db" \
     -H 'Content-Type: application/json' \
     -u "${GRAFANA_USER}:${GRAFANA_PASSWORD}" \
-    --data-binary "@${tmp_payload}")
+    --data-binary "@${tmp_payload}" 2>&1); then
+    if [[ $SILENT -eq 0 ]]; then
+      echo "Failed to import ${name}: ${response}" >&2
+    fi
+    rm -f "$tmp_payload"
+    return 1
+  fi
   rm -f "$tmp_payload"
 
   if echo "$response" | grep -q '"status":"success"'; then
