@@ -109,6 +109,13 @@ Chaque message contient :
 
 Les nouveaux champs `lap_time_seconds`, `stint_health_score` et `pit_window_probability` synthétisent l'état du relais en croisant l'usure, les températures, l'humidité et le carburant. `surface_condition` indique le comportement de la piste (cool, optimal, hot, damp) tandis que `strategy_recommendation` propose une action (`extend`, `evaluate`, `pit_soon`).
 
+Les métriques Prometheus correspondantes alimentent les dashboards Grafana améliorés :
+
+- `ferrari_simulator_lap_time_seconds` et `ferrari_simulator_stint_health_score` pour suivre les temps au tour et la santé du relais.
+- `ferrari_simulator_pit_window_probability` pour monitorer l'ouverture de la fenêtre de pit-stop (0-1).
+- `ferrari_simulator_surface_condition_info{condition="…"}` expose un état binaire par condition de piste.
+- `ferrari_simulator_strategy_recommendation_info{recommendation="…"}` active la recommandation courante.
+
 ## Anomalies simulées
 
 Types d'anomalies :
