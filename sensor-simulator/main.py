@@ -100,9 +100,17 @@ if PROMETHEUS_AVAILABLE:
     # Pneus & Stratégie
     tire_wear_percent = Gauge('ferrari_simulator_tire_wear_percent', 'Usure pneus en %')
     lap_number = Gauge('ferrari_simulator_lap', 'Numéro de tour actuel')
-    
+
     # Freinage
     brake_pressure_bar = Gauge('ferrari_simulator_brake_pressure_bar', 'Pression freinage en bar')
+
+    # Insights stratégie
+    lap_time_seconds = Gauge('ferrari_simulator_lap_time_seconds', 'Temps au tour estimé (s)')
+    stint_health_score = Gauge('ferrari_simulator_stint_health_score', 'Indice de santé du relais (0-100)')
+    pit_window_probability = Gauge(
+        'ferrari_simulator_pit_window_probability',
+        "Probabilité d'ouverture de fenêtre de stand (0-1)"
+    )
 else:
     # Mock objects si Prometheus n'est pas disponible
     messages_generated = None
@@ -117,6 +125,7 @@ else:
     engine_temp = speed_kmh = rpm = throttle_percent = None
     ers_power_kw = fuel_remaining_kg = tire_wear_percent = None
     lap_number = brake_pressure_bar = None
+    lap_time_seconds = stint_health_score = pit_window_probability = None
 
 
 @dataclass
@@ -162,11 +171,18 @@ class TelemetryData:
     track_temp_celsius: float
     air_temp_celsius: float
     humidity_percent: float
-    
+
     # Flags et anomalies
     has_anomaly: bool
     anomaly_type: Optional[str]
     anomaly_severity: Optional[str]
+
+    # Insights stratégie
+    lap_time_seconds: float
+    stint_health_score: float
+    pit_window_probability: float
+    surface_condition: str
+    strategy_recommendation: str
 
 
 class AnomalySimulator:
@@ -211,6 +227,8 @@ class AnomalySimulator:
         elif anomaly_type == "tire_pressure_loss":
             data["tire_pressure_fl_psi"] *= 0.7
             data["tire_pressure_fr_psi"] *= 0.7
+            data["tire_pressure_rl_psi"] *= 0.7
+            data["tire_pressure_rr_psi"] *= 0.7
             
         elif anomaly_type == "engine_overheat":
             data["engine_temp_celsius"] *= multiplier
@@ -223,7 +241,7 @@ class AnomalySimulator:
 
 class FerrariTelemetryGenerator:
     """Générateur de données télémétrie réalistes pour Ferrari F1"""
-    
+
     def __init__(self, car_id: str = "Ferrari-F1-75", driver: str = "Charles Leclerc"):
         self.car_id = car_id
         self.driver = driver
@@ -232,72 +250,254 @@ class FerrariTelemetryGenerator:
         self.fuel = 110.0  # kg
         self.tire_wear = 0.0
         self.anomaly_simulator = AnomalySimulator()
-        
+
         # État de la voiture
         self.base_speed = 280.0
         self.base_rpm = 15000
+
+        # Modèle de piste simplifié : chaque segment représente un type de virage
+        self.track_profile = [
+            {"length": 0.18, "target_speed": 320, "brake_intensity": 0.15, "drs": True},  # Ligne droite
+            {"length": 0.12, "target_speed": 210, "brake_intensity": 0.55, "drs": False},  # Chicane
+            {"length": 0.22, "target_speed": 290, "brake_intensity": 0.25, "drs": True},
+            {"length": 0.20, "target_speed": 180, "brake_intensity": 0.65, "drs": False},  # Enchaînement serré
+            {"length": 0.16, "target_speed": 260, "brake_intensity": 0.35, "drs": False},
+            {"length": 0.12, "target_speed": 300, "brake_intensity": 0.30, "drs": True},
+        ]
+        self.segment_boundaries = self._compute_segment_boundaries()
+        self.lap_progress = 0.0
+
+        # États pour lisser les séries temporelles
+        self._last_speed = self.base_speed
+        self._last_brake_pressure = 80.0
+        self._last_brake_temps = {
+            "fl": 320.0,
+            "fr": 320.0,
+            "rl": 300.0,
+            "rr": 300.0,
+        }
+        self._last_tire_temps = {
+            "fl": 100.0,
+            "fr": 100.0,
+            "rl": 98.0,
+            "rr": 98.0,
+        }
+
+        # Tendances météo lentes pour éviter les oscillations brutales
+        self._track_temp = 40.0 + random.uniform(-1.0, 1.0)
+        self._air_temp = 28.0 + random.uniform(-1.0, 1.0)
+        self._humidity = 55.0 + random.uniform(-3.0, 3.0)
+        self._weather_trend = {
+            "track": random.uniform(-0.02, 0.02),
+            "air": random.uniform(-0.015, 0.015),
+            "humidity": random.uniform(-0.08, 0.08),
+        }
+
+    def _compute_segment_boundaries(self) -> List[float]:
+        """Calcule les bornes cumulées des segments de piste"""
+        boundaries: List[float] = []
+        cumulative = 0.0
+        for segment in self.track_profile:
+            cumulative += segment["length"]
+            boundaries.append(cumulative)
+        # Normalisation si la somme diffère légèrement de 1
+        if cumulative != 1.0:
+            boundaries = [b / cumulative for b in boundaries]
+        return boundaries
+
+    def _current_segment(self) -> Dict:
+        """Retourne le segment de piste correspondant au progrès actuel"""
+        for boundary, segment in zip(self.segment_boundaries, self.track_profile):
+            if self.lap_progress <= boundary:
+                return segment
+        return self.track_profile[-1]
+
+    def _advance_lap_progress(self):
+        """Fait avancer la voiture sur la piste et gère le changement de tour"""
+        progress_increment = random.uniform(0.018, 0.032)
+        self.lap_progress += progress_increment
+        if self.lap_progress >= 1.0:
+            self.lap_progress -= 1.0
+            self.increment_lap()
+
+    def _compute_strategy_insights(self, data: Dict) -> Dict:
+        """Calcule des insights de stratégie à partir de la télémétrie instantanée"""
+        tire_wear = data["tire_wear_percent"]
+        fuel = data["fuel_remaining_kg"]
+        brake_temps = [
+            data["brake_temp_fl_celsius"],
+            data["brake_temp_fr_celsius"],
+            data["brake_temp_rl_celsius"],
+            data["brake_temp_rr_celsius"],
+        ]
+        tire_temps = [
+            data["tire_temp_fl_celsius"],
+            data["tire_temp_fr_celsius"],
+            data["tire_temp_rl_celsius"],
+            data["tire_temp_rr_celsius"],
+        ]
+        tire_pressures = [
+            data["tire_pressure_fl_psi"],
+            data["tire_pressure_fr_psi"],
+            data["tire_pressure_rl_psi"],
+            data["tire_pressure_rr_psi"],
+        ]
+
+        avg_brake_temp = sum(brake_temps) / 4
+        avg_tire_temp = sum(tire_temps) / 4
+        avg_tire_pressure = sum(tire_pressures) / 4
+
+        track_temp = data["track_temp_celsius"]
+        humidity = data["humidity_percent"]
+        engine_temp = data["engine_temp_celsius"]
+
+        # Lap time estimation influenced by wear, temps, humidity and DRS usage
+        base_lap = 87.5
+        wear_penalty = (tire_wear / 100) * 3.8
+        fuel_penalty = (fuel / 110) * 1.6
+        brake_penalty = max(0.0, avg_brake_temp - 460) * 0.018
+        engine_penalty = max(0.0, engine_temp - 105) * 0.11
+        humidity_penalty = max(0.0, humidity - 70) * 0.05
+        drs_bonus = -1.1 if data["drs_status"] == "open" else 0.0
+        lap_time = base_lap + wear_penalty + fuel_penalty + brake_penalty + engine_penalty + humidity_penalty + drs_bonus
+        lap_time += random.uniform(-0.5, 0.5)
+        lap_time = max(75.0, min(105.0, lap_time))
+
+        # Stint health score (0-100)
+        stint_health = 100.0
+        stint_health -= tire_wear * 0.45
+        stint_health -= max(0.0, engine_temp - 100) * 1.05
+        stint_health -= max(0.0, avg_brake_temp - 420) * 0.22
+        stint_health -= max(0.0, 22.0 - avg_tire_pressure) * 3.5
+        optimal_tire_temp = track_temp + 55
+        stint_health -= max(0.0, abs(avg_tire_temp - optimal_tire_temp)) * 0.12
+        stint_health = max(0.0, min(100.0, stint_health))
+
+        # Pit window probability (0-1)
+        pit_pressure = 0.0
+        pit_pressure += (tire_wear / 100) * 0.6
+        pit_pressure += max(0.0, 32.0 - fuel) / 32.0 * 0.25
+        pit_pressure += max(0.0, lap_time - 96.0) / 12.0 * 0.1
+        pit_pressure += 0.15 if data["has_anomaly"] else 0.0
+        pit_window_probability = max(0.0, min(1.0, pit_pressure))
+
+        # Surface condition based on track temperature and humidity
+        if humidity > 72:
+            surface_condition = "damp"
+        elif track_temp >= 48:
+            surface_condition = "hot"
+        elif track_temp <= 35:
+            surface_condition = "cool"
+        else:
+            surface_condition = "optimal"
+
+        if pit_window_probability > 0.65 or stint_health < 45:
+            strategy_recommendation = "pit_soon"
+        elif pit_window_probability > 0.4:
+            strategy_recommendation = "evaluate"
+        else:
+            strategy_recommendation = "extend"
+
+        return {
+            "lap_time_seconds": round(lap_time, 2),
+            "stint_health_score": round(stint_health, 2),
+            "pit_window_probability": round(pit_window_probability, 3),
+            "surface_condition": surface_condition,
+            "strategy_recommendation": strategy_recommendation,
+        }
         
     def generate(self) -> TelemetryData:
         """Génère un message de télémétrie"""
-        # Simulation de variation de vitesse (circuit)
-        speed_variation = random.uniform(-50, 70)
-        speed = max(50, min(350, self.base_speed + speed_variation))
-        
+        # Avancer sur la piste pour connaître le segment courant
+        self._advance_lap_progress()
+        segment = self._current_segment()
+
+        # Effets physiques simplifiés
+        tire_wear_penalty = self.tire_wear * 0.25
+        fuel_bonus = (110.0 - self.fuel) * 0.12
+        segment_speed = segment["target_speed"] - tire_wear_penalty + fuel_bonus
+        segment_speed += random.uniform(-5, 5)
+
+        # Lisser la transition de vitesse
+        speed = 0.65 * self._last_speed + 0.35 * max(60, min(360, segment_speed))
+        self._last_speed = speed
+
         # RPM corrélé avec la vitesse
-        rpm = int(self.base_rpm + (speed - self.base_speed) * 30)
-        rpm = max(8000, min(19000, rpm))
-        
+        rpm = int(self.base_rpm + (speed - self.base_speed) * 32)
+        rpm = max(9000, min(19000, rpm))
+
         # Gear basé sur RPM
-        if rpm < 10000:
-            gear = random.randint(1, 3)
-        elif rpm < 14000:
-            gear = random.randint(3, 5)
+        if rpm < 10500:
+            gear = random.randint(2, 4)
+        elif rpm < 14500:
+            gear = random.randint(4, 6)
         else:
-            gear = random.randint(5, 8)
-        
-        # Throttle et freinage
-        throttle = random.uniform(0, 100) if speed > 100 else random.uniform(0, 50)
-        brake_pressure = random.uniform(0, 150) if throttle < 30 else random.uniform(0, 30)
-        
-        # Température moteur
-        engine_temp = 90 + (rpm / 19000) * 30 + random.uniform(-5, 5)
-        
-        # Températures de frein (élevées lors du freinage)
-        brake_temp_base = 300 if brake_pressure > 100 else 200
-        brake_temp_fl = brake_temp_base + random.uniform(-30, 30)
-        brake_temp_fr = brake_temp_base + random.uniform(-30, 30)
-        brake_temp_rl = brake_temp_base + random.uniform(-30, 30)
-        brake_temp_rr = brake_temp_base + random.uniform(-30, 30)
-        
-        # Températures pneus (dépendent de la vitesse et du composé)
-        tire_temp_base = 85 if self.tire_compound == "hard" else 95 if self.tire_compound == "medium" else 105
-        tire_temp_fl = tire_temp_base + random.uniform(-8, 8)
-        tire_temp_fr = tire_temp_base + random.uniform(-8, 8)
-        tire_temp_rl = tire_temp_base + random.uniform(-8, 8)
-        tire_temp_rr = tire_temp_base + random.uniform(-8, 8)
-        
-        # Pressions pneus
+            gear = random.randint(6, 8)
+
+        # Throttle et freinage corrélés au segment
+        throttle = max(0.0, min(100.0, 70 + random.uniform(-15, 10) - segment["brake_intensity"] * 80))
+        brake_pressure_target = segment["brake_intensity"] * (180 + random.uniform(-10, 10))
+        brake_pressure = 0.6 * self._last_brake_pressure + 0.4 * brake_pressure_target
+        self._last_brake_pressure = brake_pressure
+
+        # Température moteur dépendant du RPM et du throttle
+        engine_temp = 92 + (rpm / 19000) * 32 + (throttle / 100) * 6 + random.uniform(-3, 3)
+
+        # Températures de frein (sensibles au freinage et à la vitesse)
+        base_brake_temp = 260 + segment["brake_intensity"] * 160 + (speed / 340) * 40
+        for key in self._last_brake_temps:
+            drift = random.uniform(-8, 8)
+            self._last_brake_temps[key] = 0.6 * self._last_brake_temps[key] + 0.4 * (base_brake_temp + drift)
+
+        brake_temp_fl = self._last_brake_temps["fl"]
+        brake_temp_fr = self._last_brake_temps["fr"]
+        brake_temp_rl = self._last_brake_temps["rl"]
+        brake_temp_rr = self._last_brake_temps["rr"]
+
+        # Températures pneus (dépendent du composé, du segment et de l'usure)
+        compound_base = {"soft": 107, "medium": 98, "hard": 90}[self.tire_compound]
+        wear_delta = self.tire_wear * 0.08
+        segment_heat = segment["brake_intensity"] * 12 + (speed / 320) * 6
+        for key in self._last_tire_temps:
+            noise = random.uniform(-3, 3)
+            target_temp = compound_base + segment_heat - wear_delta + noise
+            self._last_tire_temps[key] = 0.7 * self._last_tire_temps[key] + 0.3 * target_temp
+
+        tire_temp_fl = self._last_tire_temps["fl"]
+        tire_temp_fr = self._last_tire_temps["fr"]
+        tire_temp_rl = self._last_tire_temps["rl"]
+        tire_temp_rr = self._last_tire_temps["rr"]
+
+        # Pressions pneus influencées par la température
         tire_pressure_base = 21.0
-        tire_pressure_fl = tire_pressure_base + random.uniform(-1, 1)
-        tire_pressure_fr = tire_pressure_base + random.uniform(-1, 1)
-        tire_pressure_rl = tire_pressure_base + random.uniform(-1, 1)
-        tire_pressure_rr = tire_pressure_base + random.uniform(-1, 1)
-        
-        # Usure pneus (augmente avec le temps)
-        self.tire_wear = min(100, self.tire_wear + random.uniform(0.01, 0.05))
-        
+        tire_pressure_fl = tire_pressure_base + (tire_temp_fl - compound_base) * 0.015 + random.uniform(-0.2, 0.2)
+        tire_pressure_fr = tire_pressure_base + (tire_temp_fr - compound_base) * 0.015 + random.uniform(-0.2, 0.2)
+        tire_pressure_rl = tire_pressure_base + (tire_temp_rl - compound_base) * 0.015 + random.uniform(-0.2, 0.2)
+        tire_pressure_rr = tire_pressure_base + (tire_temp_rr - compound_base) * 0.015 + random.uniform(-0.2, 0.2)
+
+        # Usure pneus basée sur l'intensité du segment et le composé
+        compound_multiplier = {"soft": 0.05, "medium": 0.035, "hard": 0.025}[self.tire_compound]
+        wear_increment = compound_multiplier * (0.6 + segment["brake_intensity"]) * random.uniform(0.8, 1.2)
+        self.tire_wear = min(100.0, self.tire_wear + wear_increment)
+
         # DRS et ERS
-        drs_status = "open" if speed > 280 and random.random() > 0.5 else "closed"
-        ers_power = random.uniform(0, 120) if throttle > 50 else random.uniform(0, 50)
-        
-        # Carburant (diminue)
-        self.fuel = max(0, self.fuel - random.uniform(0.01, 0.03))
-        
-        # Environnement
-        track_temp = 40 + random.uniform(-5, 5)
-        air_temp = 28 + random.uniform(-3, 3)
-        humidity = 55 + random.uniform(-10, 10)
-        
+        drs_status = "open" if segment.get("drs") and speed > 290 and throttle > 60 else "closed"
+        ers_base = 80 if drs_status == "open" else 60
+        ers_power = max(0.0, min(130.0, ers_base + (100 - throttle) * 0.4 + random.uniform(-10, 10)))
+
+        # Carburant (diminue plus vite sur les segments rapides)
+        fuel_usage = 0.018 + segment["brake_intensity"] * 0.01 + (throttle / 1000)
+        self.fuel = max(0.0, self.fuel - fuel_usage)
+
+        # Environnement avec tendances lentes
+        self._track_temp += self._weather_trend["track"] + random.uniform(-0.15, 0.2)
+        self._air_temp += self._weather_trend["air"] + random.uniform(-0.1, 0.12)
+        self._humidity += self._weather_trend["humidity"] + random.uniform(-0.4, 0.4)
+
+        track_temp = max(30.0, min(55.0, self._track_temp))
+        air_temp = max(18.0, min(38.0, self._air_temp))
+        humidity = max(25.0, min(85.0, self._humidity))
+
         # Création du message de base
         data_dict = {
             "timestamp": datetime.utcnow().isoformat() + "Z",
@@ -342,7 +542,10 @@ class FerrariTelemetryGenerator:
             data_dict["has_anomaly"] = True
             data_dict["anomaly_type"] = anomaly_type
             data_dict["anomaly_severity"] = severity
-        
+
+        insights = self._compute_strategy_insights(data_dict)
+        data_dict.update(insights)
+
         return TelemetryData(**data_dict)
     
     def increment_lap(self):
@@ -478,10 +681,15 @@ class HTTPPublisher:
             # Pneus & Stratégie
             if tire_wear_percent: tire_wear_percent.set(data.tire_wear_percent)
             if lap_number: lap_number.set(data.lap)
-            
+
             # Freinage
             if brake_pressure_bar: brake_pressure_bar.set(data.brake_pressure_bar)
-            
+
+            # Insights stratégie
+            if lap_time_seconds: lap_time_seconds.set(data.lap_time_seconds)
+            if stint_health_score: stint_health_score.set(data.stint_health_score)
+            if pit_window_probability: pit_window_probability.set(data.pit_window_probability)
+
         except Exception as e:
             logger.debug(f"Erreur mise à jour métriques thermiques: {e}")
     

@@ -8,7 +8,8 @@ Simulateur haute performance de capteurs IoT pour Ferrari F1.
 - 📡 **Multi-transport**: Support Kafka et HTTP
 - 🔥 **Simulation d'anomalies**: Surchauffe freins, pneus, moteur
 - 📊 **Métriques en temps réel**: Latence, throughput, taux d'erreur
-- 🏎️ **Données réalistes**: Télémétrie complète F1
+- 🏎️ **Données réalistes**: Modèle multi-segments corrélant vitesse, freinage, pneus et météo
+- 🧠 **Insights stratégie**: Calcul du temps au tour, de la santé de relais et de la fenêtre de pit-stop
 
 ## Installation
 
@@ -95,9 +96,18 @@ Chaque message contient :
   "humidity_percent": 58.2,
   "has_anomaly": false,
   "anomaly_type": null,
-  "anomaly_severity": null
+  "anomaly_severity": null,
+  "lap_time_seconds": 89.42,
+  "stint_health_score": 78.4,
+  "pit_window_probability": 0.28,
+  "surface_condition": "optimal",
+  "strategy_recommendation": "extend"
 }
 ```
+
+### Insights stratégie
+
+Les nouveaux champs `lap_time_seconds`, `stint_health_score` et `pit_window_probability` synthétisent l'état du relais en croisant l'usure, les températures, l'humidité et le carburant. `surface_condition` indique le comportement de la piste (cool, optimal, hot, damp) tandis que `strategy_recommendation` propose une action (`extend`, `evaluate`, `pit_soon`).
 
 ## Anomalies simulées
 
