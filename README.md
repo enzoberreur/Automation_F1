@@ -199,20 +199,6 @@ Des benchmarks, guides d’usage et cas métiers supplémentaires sont disponibl
 
 ---
 
-## 🎓 Préparation au barème d'évaluation
-
-| Pilier | Ce qui est couvert dans le dépôt |
-|--------|-----------------------------------|
-| Architecture & Relevance | `ARCHITECTURE.md` détaillé, README explicite sur les choix technos et leur roadmap d'évolution. |
-| Infrastructure & Deployment | Makefile minimaliste, Docker Compose nettoyé, scripts d'import Grafana, manifestes K8s avec HPA et NetworkPolicy. |
-| Containerization & Orchestration | Dockerfiles multi-services, scaling horizontal via `k8s/stream-processor-hpa.yaml`, configuration réseau dédiée. |
-| Workflow Automation (Airflow) | DAG `ferrari_grand_prix_dag` enrichi : collecte → persistance → contrôles qualité → agrégations → notifications. |
-| Data Modelling & Management | Schéma PostgreSQL versionné (`airflow/init-db.sql`), tables `telemetry_data` enrichies, `telemetry_team_summary` pour les comparaisons écurie. |
-| Monitoring & Observability | Dashboards Grafana multi-équipes, métriques Prometheus détaillées, scripts d'import automatisés. |
-| Security & Compliance | Authentification par clé API, cloisonnement Kubernetes, documentation dédiée (`docs/security-and-compliance.md`). |
-| Documentation & Code quality | Guides dans `docs/`, README complet, commentaires Airflow, typage Python généralisé. |
-| Oral presentation & Demo | Section "Démarrage rapide" + résumé des KPIs, parfait pour une démo live. |
-
 | Problème | Diagnostic | Solution |
 |----------|------------|----------|
 | `make start` échoue | Docker ou docker-compose manquant | Installer Docker Desktop / Compose, ou lancer les services manuellement avec `docker-compose up` |
