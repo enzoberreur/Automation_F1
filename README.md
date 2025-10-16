@@ -30,7 +30,7 @@ Cette commande :
 
 > ℹ️ Les identifiants par défaut sont `admin / admin` pour Grafana et Airflow. La clé API `STREAM_PROCESSOR_API_KEY` est partagée automatiquement entre le simulateur et le stream processor lorsqu'elle est définie dans l'environnement.
 
-Une fois le stack prêt, accédez au poste de commande principal : <http://localhost:3000/d/ferrari-f1-dashboard>.
+Une fois le stack prêt, accédez au poste de commande principal : <http://localhost:3000/d/ferrari-strategy-dashboard>.
 
 Pour arrêter et nettoyer :
 
