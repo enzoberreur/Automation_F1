@@ -245,7 +245,8 @@
         "targets": [
           {
             "expr": "ferrari_pitstop_score{car_id=~\"$car_id\"}",
-            "refId": "A"
+            "refId": "A",
+            "legendFormat": "{{car_id}} {{driver}} · Pitstop score"
           }
         ],
         "options": {
@@ -274,12 +275,13 @@
         "targets": [
           {
             "expr": "ferrari_simulator_lap_time_seconds",
-            "refId": "A"
+            "refId": "A",
+            "legendFormat": "{{car_id}} {{driver}} · Lap time"
           },
           {
             "expr": "avg_over_time(ferrari_simulator_lap_time_seconds[5m])",
             "refId": "B",
-            "legendFormat": "Rolling avg (5m)"
+            "legendFormat": "{{car_id}} {{driver}} · Rolling avg (5m)"
           }
         ],
         "options": {
@@ -310,12 +312,12 @@
           {
             "expr": "ferrari_simulator_stint_health_score",
             "refId": "A",
-            "legendFormat": "Stint health"
+            "legendFormat": "{{car_id}} {{driver}} · Stint health"
           },
           {
             "expr": "ferrari_simulator_pit_window_probability * 100",
             "refId": "B",
-            "legendFormat": "Pit window %"
+            "legendFormat": "{{car_id}} {{driver}} · Pit window %"
           }
         ],
         "options": {
@@ -338,12 +340,13 @@
         "targets": [
           {
             "expr": "avg_over_time(ferrari_simulator_tire_wear_percent[$interval])",
-            "refId": "A"
+            "refId": "A",
+            "legendFormat": "{{car_id}} {{driver}} · Tire wear"
           },
           {
             "expr": "avg_over_time(ferrari_simulator_tire_wear_percent[30m]) + increase(ferrari_simulator_tire_wear_percent[30m]) * (300/1800)",
             "refId": "B",
-            "legendFormat": "Projection (5m)"
+            "legendFormat": "{{car_id}} {{driver}} · Projection (5m)"
           }
         ]
       },
@@ -361,11 +364,13 @@
         "targets": [
           {
             "expr": "ferrari_simulator_ers_power_kw",
-            "refId": "A"
+            "refId": "A",
+            "legendFormat": "{{car_id}} {{driver}} · ERS power"
           },
           {
             "expr": "ferrari_simulator_engine_temp_celsius",
-            "refId": "B"
+            "refId": "B",
+            "legendFormat": "{{car_id}} {{driver}} · Engine temp"
           }
         ]
       },
@@ -383,7 +388,7 @@
         "targets": [
           {
             "expr": "ferrari_simulator_surface_condition_state",
-            "legendFormat": "Surface",
+            "legendFormat": "{{car_id}} {{driver}} · Surface",
             "refId": "A"
           }
         ],
@@ -454,7 +459,7 @@
         "targets": [
           {
             "expr": "ferrari_simulator_strategy_recommendation_state",
-            "legendFormat": "Recommendation",
+            "legendFormat": "{{car_id}} {{driver}} · Recommendation",
             "refId": "A"
           }
         ],

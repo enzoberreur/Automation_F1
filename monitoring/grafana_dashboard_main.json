@@ -231,7 +231,8 @@
         "targets": [
           {
             "expr": "ferrari_pitstop_score",
-            "refId": "A"
+            "refId": "A",
+            "legendFormat": "{{car_id}} {{driver}} · Pitstop score"
           }
         ]
       },
@@ -249,7 +250,8 @@
         "targets": [
           {
             "expr": "ferrari_simulator_engine_temp_celsius",
-            "refId": "A"
+            "refId": "A",
+            "legendFormat": "{{car_id}} {{driver}} · Engine temp"
           }
         ]
       },
@@ -427,19 +429,23 @@
         "targets": [
           {
             "expr": "ferrari_simulator_brake_temp_fl_celsius",
-            "refId": "A"
+            "refId": "A",
+            "legendFormat": "{{car_id}} {{driver}} · Brake FL"
           },
           {
             "expr": "ferrari_simulator_brake_temp_fr_celsius",
-            "refId": "B"
+            "refId": "B",
+            "legendFormat": "{{car_id}} {{driver}} · Brake FR"
           },
           {
             "expr": "ferrari_simulator_brake_temp_rl_celsius",
-            "refId": "C"
+            "refId": "C",
+            "legendFormat": "{{car_id}} {{driver}} · Brake RL"
           },
           {
             "expr": "ferrari_simulator_brake_temp_rr_celsius",
-            "refId": "D"
+            "refId": "D",
+            "legendFormat": "{{car_id}} {{driver}} · Brake RR"
           }
         ]
       },
@@ -457,19 +463,23 @@
         "targets": [
           {
             "expr": "ferrari_simulator_tire_temp_fl_celsius",
-            "refId": "A"
+            "refId": "A",
+            "legendFormat": "{{car_id}} {{driver}} · Tire FL"
           },
           {
             "expr": "ferrari_simulator_tire_temp_fr_celsius",
-            "refId": "B"
+            "refId": "B",
+            "legendFormat": "{{car_id}} {{driver}} · Tire FR"
           },
           {
             "expr": "ferrari_simulator_tire_temp_rl_celsius",
-            "refId": "C"
+            "refId": "C",
+            "legendFormat": "{{car_id}} {{driver}} · Tire RL"
           },
           {
             "expr": "ferrari_simulator_tire_temp_rr_celsius",
-            "refId": "D"
+            "refId": "D",
+            "legendFormat": "{{car_id}} {{driver}} · Tire RR"
           }
         ]
       },
@@ -523,11 +533,13 @@
         "targets": [
           {
             "expr": "(max_over_time(ferrari_simulator_brake_temp_fl_celsius[5m]) or vector(0)) - (min_over_time(ferrari_simulator_brake_temp_fl_celsius[5m]) or vector(0))",
-            "refId": "A"
+            "refId": "A",
+            "legendFormat": "{{car_id}} {{driver}} · ΔBrake FL"
           },
           {
             "expr": "(max_over_time(ferrari_simulator_brake_temp_fr_celsius[5m]) or vector(0)) - (min_over_time(ferrari_simulator_brake_temp_fr_celsius[5m]) or vector(0))",
-            "refId": "B"
+            "refId": "B",
+            "legendFormat": "{{car_id}} {{driver}} · ΔBrake FR"
           }
         ]
       },
@@ -545,7 +557,8 @@
         "targets": [
           {
             "expr": "(max_over_time(ferrari_simulator_tire_temp_fl_celsius[5m]) or vector(0)) - (min_over_time(ferrari_simulator_tire_temp_fl_celsius[5m]) or vector(0))",
-            "refId": "A"
+            "refId": "A",
+            "legendFormat": "{{car_id}} {{driver}} · ΔT tire FL"
           }
         ]
       },
@@ -563,7 +576,8 @@
         "targets": [
           {
             "expr": "(max_over_time(ferrari_simulator_tire_pressure_fl_psi[5m]) or vector(0)) - (min_over_time(ferrari_simulator_tire_pressure_fl_psi[5m]) or vector(0))",
-            "refId": "A"
+            "refId": "A",
+            "legendFormat": "{{car_id}} {{driver}} · ΔPressure FL"
           }
         ]
       },
@@ -592,12 +606,13 @@
         "targets": [
           {
             "expr": "avg_over_time(ferrari_simulator_tire_wear_percent[30m])",
-            "refId": "A"
+            "refId": "A",
+            "legendFormat": "{{car_id}} {{driver}} · Tire wear avg"
           },
           {
             "expr": "avg_over_time(ferrari_simulator_tire_wear_percent[30m]) + increase(ferrari_simulator_tire_wear_percent[30m]) / 1800 * 900",
             "refId": "B",
-            "legendFormat": "projection_15m"
+            "legendFormat": "{{car_id}} {{driver}} · Projection 15m"
           }
         ]
       },
@@ -614,7 +629,7 @@
         "targets": [
           {
             "expr": "ferrari_simulator_strategy_recommendation_state",
-            "legendFormat": "Recommendation",
+            "legendFormat": "{{car_id}} {{driver}} · Recommendation",
             "refId": "A"
           }
         ],
@@ -678,11 +693,13 @@
         "targets": [
           {
             "expr": "ferrari_simulator_ers_power_kw",
-            "refId": "A"
+            "refId": "A",
+            "legendFormat": "{{car_id}} {{driver}} · ERS power"
           },
           {
             "expr": "ferrari_simulator_engine_temp_celsius",
-            "refId": "B"
+            "refId": "B",
+            "legendFormat": "{{car_id}} {{driver}} · Engine temp"
           }
         ]
       },
@@ -701,12 +718,12 @@
           {
             "expr": "ferrari_simulator_lap_time_seconds",
             "refId": "A",
-            "legendFormat": "Lap time (s)"
+            "legendFormat": "{{car_id}} {{driver}} · Lap time (s)"
           },
           {
             "expr": "ferrari_simulator_pit_window_probability * 100",
             "refId": "B",
-            "legendFormat": "Pit window %"
+            "legendFormat": "{{car_id}} {{driver}} · Pit window %"
           }
         ],
         "fieldConfig": {
