@@ -1,258 +1,150 @@
 # 🏎️ Ferrari F1 IoT Smart Pit-Stop
 
-<div align="center">
+Plateforme de télémétrie et de monitoring inspirée d'un mur des stands de Formule 1. Le dépôt rassemble :
 
-![Ferrari F1](https://img.shields.io/badge/Ferrari-F1-DC143C?style=for-the-badge&logo=ferrari&logoColor=white)
-![Docker](https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white)
-![Kubernetes](https://img.shields.io/badge/Kubernetes-326CE5?style=for-the-badge&logo=kubernetes&logoColor=white)
-![Prometheus](https://img.shields.io/badge/Prometheus-E6522C?style=for-the-badge&logo=prometheus&logoColor=white)
-![Grafana](https://img.shields.io/badge/Grafana-F46800?style=for-the-badge&logo=grafana&logoColor=white)
+- un simulateur de capteurs haute fréquence (HTTP + métriques Prometheus) ;
+- un service de traitement (`stream-processor`) ;
+- une stack d'observabilité (Prometheus + Grafana) ;
+- des orchestrations Airflow pour la donnée batch.
 
-**Architecture IoT complète pour l'optimisation temps réel des stratégies pit-stop en Formule 1**
-
-[🚀 Démarrage Rapide](#-démarrage-rapide) • [📊 Dashboards](#-dashboards) • [🏗️ Architecture](#️-architecture) • [📚 Documentation](#-documentation)
-
-</div>
+L'objectif : fournir un environnement réaliste pour expérimenter des pipelines IoT/streaming et des tableaux de bord stratégiques.
 
 ---
 
-## 📖 **PRÉSENTATION**
+## 🚦 Démarrage rapide (tout en Docker)
 
-**Ferrari F1 IoT Smart Pit-Stop** est une plateforme IoT de nouvelle génération qui simule et analyse en temps réel les données télémétrie d'une écurie de Formule 1. Le système optimise les décisions stratégiques de pit-stop grâce à l'intelligence artificielle et la détection d'anomalies.
-
-### 🎯 **OBJECTIFS**
-- **Optimisation pit-stop** temps réel avec scoring intelligent
-- **Détection précoce** d'anomalies critiques (moteur, freins, pneus)  
-- **Architecture microservices** scalable et observables
-- **Pipeline données complète** : ingestion → traitement → analyse → visualisation
-
-### 🏆 **RÉSULTATS**
-- **272,000+** messages de télémétrie traités
-- **0.46ms** latence moyenne de processing  
-- **4/4 endpoints** Prometheus opérationnels
-- **100%** système fonctionnel avec monitoring complet
-
-# 🏎️ Ferrari F1 IoT — Automation_F1
-
-Projet localisé : simulateur de télémétrie Ferrari F1, pipeline de traitement en temps réel, et stack de monitoring (Prometheus + Grafana). Ce README est aligné sur l'état actuel du projet et explique comment démarrer, où trouver les dashboards et comment investiguer.
-
-Table des matières
-- Démarrage rapide
-- Services exposés
-- Dashboards Grafana (emplacement/description)
-- Métriques importantes
-- Commandes utiles
-- Contribuer
-
----
-
-## ⚡ Démarrage rapide
-
-Pré-requis : Docker & Docker Compose
-
-1) Cloner et démarrer
+Pré-requis : Docker, Docker Compose et `make`.
 
 ```bash
 git clone https://github.com/enzoberreur/Automation_F1.git
 cd Automation_F1
-docker-compose up -d --build
+make start
 ```
 
-2) Vérifier les services
+La commande :
+1. construit et démarre les services (simulateur, stream-processor, Prometheus, Grafana, Airflow, cAdvisor) ;
+2. attend que les sondes de santé répondent ;
+3. importe automatiquement les dashboards Grafana.
+
+> ℹ️ Les identifiants par défaut sont `admin / admin` pour Grafana et Airflow.
+
+Une fois le stack prêt, accédez au poste de commande principal : <http://localhost:3000/d/ferrari-f1-dashboard>.
+
+Pour arrêter et nettoyer :
 
 ```bash
-docker-compose ps
+make stop
 ```
-
-Ports exposés par défaut :
-- Grafana : 3000
-- Prometheus : 9090
-- Airflow : 8080
-- cAdvisor : 8082
-- Stream-processor : 8001
-- Sensor-simulator metrics : 8000
 
 ---
 
-## 🧩 Services (etat actuel)
+## 🧪 Démarrage léger (simulateur seul)
 
-- sensor-simulator — génère la télémétrie et expose des métriques Prometheus sur le port `8000`.
-- stream-processor — service REST (`:8001`) qui consomme la télémétrie et produit des métriques et enregistrements.
-- prometheus — collecte les métriques. Config : `./monitoring/prometheus.yml`.
-- grafana — héberge les dashboards. Les dashboards sont dans `./monitoring/`.
-- cadvisor — métriques conteneurs.
-- airflow — orchestration ETL et génération de données batch.
+Pour tester uniquement le flux de télémétrie :
+
+```bash
+cd sensor-simulator
+pip install -r requirements.txt
+python main.py
+```
+
+Le simulateur publie :
+- la télémétrie sur `http://localhost:8001/telemetry` (attendez-vous à un message d'erreur si le `stream-processor` n'est pas démarré) ;
+- les métriques Prometheus sur `http://localhost:8000/metrics`.
+
+Consultez `sensor-simulator/README.md` pour un guide détaillé (configuration, métriques, anomalies simulées).
+
+---
+
+## 🔌 Services & ports
+
+| Service | Rôle | Port local |
+|---------|------|------------|
+| sensor-simulator | Génère la télémétrie F1 et les métriques Prometheus | `8000` (metrics) |
+| stream-processor | Reçoit la télémétrie, calcule des KPIs et expose des API | `8001` |
+| prometheus | Collecte toutes les métriques | `9090` |
+| grafana | Tableaux de bord temps réel | `3000` |
+| airflow | Orchestration batch & maintenance de données | `8080` |
+| cadvisor | Observabilité des conteneurs | `8082` |
+
+La configuration Docker Compose se trouve dans `docker-compose.yml`. Les manifestes Kubernetes sont disponibles dans `k8s/` si vous souhaitez déployer sur un cluster.
 
 ---
 
 ## 📊 Dashboards Grafana
 
-Emplacements sources :
-- `./monitoring/grafana_dashboard_main.json` — Dashboard principal "Ferrari F1 - Main Operations" (importé dans Grafana, UID: `ferrari-main-dashboard`).
-- `./monitoring/grafana_dashboard_data.json`, `./monitoring/grafana_dashboard_strategy.json`, `./monitoring/grafana_dashboard_data_quality.json` — autres dashboards créés pour exploration et qualité des données.
+Les définitions JSON des dashboards résident dans `monitoring/` :
 
-Accès Grafana : http://localhost:3000 (admin/admin)
+- `grafana_dashboard_main.json` — vue opérations & thermique : vitesse, freins/pneus, anomalies, stratégie.
+- `grafana_dashboard_strategy.json` — suivi détaillé des recommandations pit-stop (probabilité de fenêtre, état de la piste, timeline stratégie).
+- `grafana_dashboard_data.json`, `grafana_dashboard_data_quality.json` — analyses complémentaires (débit, fraîcheur, qualité de données).
 
-Description rapide du dashboard principal (voir `monitoring/grafana_dashboard_main.json` pour les panels) :
-- KPI row : throughput, efficiency index (pitstop), engine temp, active anomalies, fuel remaining
-- Sparklines : throughput 1h, pitstop 24h, engine temp 1h
-- Service health : up{job=...} pour sensor-simulator, stream-processor, prometheus, grafana
-- Latency : p50/p95/p99 + heatmap
-- Thermal cockpit : brake temps, tire temps, tire wear avg/max
-- Imbalance panels : brake/tire temp delta, tire pressure imbalance
-- Projections : tire wear projection (15m), panneau texte de recommandations
-- Data quality : freshness, missing metrics, cardinality, counter resets
-
----
-
-## 📈 Métriques importantes (noms exposés)
-
-Les métriques produites par le simulateur et utilisées dans les dashboards :
-
-- `ferrari_simulator_messages_sent_total` (counter)
-- `ferrari_simulator_current_throughput_msg_per_sec` (gauge)
-- `ferrari_simulator_send_latency_seconds_bucket` (histogram)
-- `ferrari_simulator_engine_temp_celsius` (gauge)
-- `ferrari_simulator_brake_temp_*_celsius` (gauges)
-- `ferrari_simulator_tire_temp_*_celsius` (gauges)
-- `ferrari_simulator_tire_wear_percent` (gauge)
-- `ferrari_pitstop_score` (gauge)
-- `ferrari_active_anomalies` (gauge/counter)
-- `ferrari_simulator_fuel_remaining_kg` (gauge)
-
-Si une métrique est absente, les panels utilisent un fallback `vector(0)` pour éviter les erreurs Grafana.
-
----
-
-## 🔍 Commandes utiles
-
-# Vérifier targets Prometheus
-curl http://localhost:9090/targets
-
-# Re-importer le dashboard principal (local)
-curl -sS -u admin:admin -H "Content-Type: application/json" -X POST --data-binary @monitoring/grafana_dashboard_main.json http://localhost:3000/api/dashboards/db
-
-# Lancer un envoi de données de test
-curl -X POST "http://localhost:8001/telemetry" -H "Content-Type: application/json" -d @monitoring/test_payload.json
-
----
-
-## �️ Contribution & workflow
-
-- Branche recommandée pour modifications : `main` (ou ouvrez une branche feature/xxx)
-- Commit & push standard : `git add . && git commit -m "feat: ..." && git push`.
-
----
-
-## Prochaines étapes suggérées
-
-- Ajouter des recording rules pour les métriques dérivées (tire wear projection, engine z-score).
-- Connecter Alertmanager pour notifications (Slack/email) sur alertes critiques.
-- Itérer sur l'UI Grafana (couleurs/seuils) si vous voulez un rendu plus "wow".
-
----
-
-Si vous voulez, je peux maintenant :
-- committer ces changements (`monitoring/grafana_dashboard_main.json`, `README.md`) sur une branche `monitoring/dashboard-main` et pousser;
-- ajouter les recording rules et mettre à jour `monitoring/prometheus.yml`;
-- ajouter des runbooks dans les panels Grafana.
-
-Dites-moi l'option que vous préférez.
-
-# Métriques système
-docker stats
-
-# Logs temps réel
-docker-compose logs -f --tail=50
-
-# Health check complet
-curl http://localhost:8001/health
-curl http://localhost:3000/api/health
-```
-
----
-
-## 🏆 **PERFORMANCES**
-
-### **📊 Benchmarks Validés**
-
-| **Métrique** | **Valeur** | **Commentaire** |
-|--------------|------------|-----------------|
-| **Throughput** | 272,000+ msg | Volume télémétrie traité |
-| **Latence Processing** | 0.46ms | Moyenne temps réel |
-| **Availability** | 99.9%+ | Uptime services critiques |
-| **Endpoints** | 4/4 UP | Monitoring Prometheus |
-| **Memory Usage** | <2GB | Ensemble stack Docker |
-
----
-
-## 📚 **DOCUMENTATION COMPLÈTE**
-
-- **🏗️ Architecture** : Vue détaillée du système dans `ARCHITECTURE.md`
-- **💼 Cas d'usage** : Analyses business dans `docs/use-cases.md`
-- **📊 Benchmarks** : Tests de performance dans `benchmark/`
-- **🔧 Troubleshooting** : Guide de dépannage dans cette section
-
----
-
-## 🤝 **CONTRIBUTION**
-
-### **🔄 Workflow Développement**
+Importer manuellement :
 
 ```bash
-# Fork → Clone → Branch
-git checkout -b feature/nouvelle-fonctionnalite
-
-# Développement avec tests locaux
-docker-compose up -d
-# ... développement ...
-
-# Tests & validation  
-docker-compose exec stream-processor python -m pytest
-curl http://localhost:9090/targets  # Vérifier métriques
-
-# Commit & Push
-git add . && git commit -m "feat: nouvelle fonctionnalité"
-git push origin feature/nouvelle-fonctionnalite
+./import-dashboard.sh
 ```
 
-### **📋 Standards Code**
-
-- **Python** : PEP 8, type hints, docstrings
-- **Docker** : Multi-stage builds, security best practices
-- **Monitoring** : Toujours exposer métriques Prometheus
-- **Tests** : Coverage > 80%, tests d'intégration obligatoires
+ou passer par l’UI Grafana (`Dashboards → Import`) en collant le contenu JSON.
 
 ---
 
-## 📄 **LICENCE**
+## 📈 Métriques clés
 
-```
-MIT License - Ferrari F1 IoT Smart Pit-Stop
+Les dashboards s'appuient principalement sur :
 
-Copyright (c) 2025 - Scuderia Ferrari Engineering Team
+- **Flux** : `ferrari_simulator_messages_generated_total`, `ferrari_simulator_messages_sent_total`, `ferrari_simulator_current_throughput_msg_per_sec`.
+- **Thermique** : `ferrari_simulator_brake_temp_*_celsius`, `ferrari_simulator_tire_temp_*_celsius`, `ferrari_simulator_engine_temp_celsius`.
+- **Pneus & carburant** : `ferrari_simulator_tire_wear_percent`, `ferrari_simulator_fuel_remaining_kg`.
+- **Stratégie** : `ferrari_simulator_lap_time_seconds`, `ferrari_simulator_stint_health_score`, `ferrari_simulator_pit_window_probability`, `ferrari_simulator_surface_condition_state`, `ferrari_simulator_strategy_recommendation_state`.
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files...
-```
-
----
-
-## 🙏 **REMERCIEMENTS**
-
-- **Scuderia Ferrari** - Pour l'inspiration technique  
-- **Apache Foundation** - Airflow ecosystem
-- **Prometheus & Grafana Labs** - Observability stack
-- **CNCF** - Kubernetes & cloud-native technologies
+Toutes les métriques exposées par le simulateur sont décrites dans `sensor-simulator/README.md`. Celles du `stream-processor` sont consultables via `http://localhost:8001/metrics`.
 
 ---
 
-<div align="center">
+## 🗺️ Architecture (aperçu)
 
-### 🏎️ **"Data is the new horsepower in Formula 1"** 🏎️
+1. **Sensor Simulator** — génère 1 500 messages/s, applique anomalies et calcule des insights de stratégie.
+2. **Stream Processor** — consomme les événements HTTP, calcule des KPI temps réel et persiste l’état.
+3. **Prometheus** — scrappe le simulateur, le stream-processor, cAdvisor.
+4. **Grafana** — visualise la télémétrie, les insights de stratégie et la santé système.
+5. **Airflow** — planifie des jobs batch (relectures, calculs périodiques, tests de qualité).
 
-**Made with ❤️ by Ferrari F1 Engineering Team**
+Le document `ARCHITECTURE.md` fournit une description complète (diagrammes, flux détaillés, cas d'usage).
 
-[⬆️ Retour au sommet](#-ferrari-f1-iot-smart-pit-stop)
+---
 
-</div>
+## 🛠️ Développement & contributions
+
+1. Créer une branche (`git checkout -b feature/xxx`).
+2. Lancer les tests locaux si disponibles (ex. `python -m compileall sensor-simulator/main.py`).
+3. Respecter le style Python (type hints, pas de `try/except` autour des imports, logs structurés).
+4. Soumettre une Pull Request en décrivant clairement la modification et les tests exécutés.
+
+Des benchmarks, guides d’usage et cas métiers supplémentaires sont disponibles dans `benchmark/` et `docs/`.
+
+---
+
+## ❓ Dépannage rapide
+
+| Problème | Diagnostic | Solution |
+|----------|------------|----------|
+| `make start` échoue | Docker ou docker-compose manquant | Installer Docker Desktop / Compose, ou lancer les services manuellement avec `docker-compose up` |
+| `http://localhost:3000` inaccessible | Grafana pas encore démarré | Patienter quelques secondes ou vérifier `docker-compose logs grafana` |
+| Pas de métriques dans Prometheus | Bibliothèque `prometheus_client` non installée dans le simulateur | Installer la dépendance (`pip install prometheus-client`) puis redémarrer |
+| Erreurs HTTP dans le simulateur | Stream-processor injoignable | Lancer `docker-compose up stream-processor` ou ajuster `HTTP_ENDPOINT` |
+
+Pour aller plus loin :
+- vérifier la santé des services (`make status`),
+- consulter les logs (`docker-compose logs -f --tail=100 <service>`),
+- explorer les runbooks directement dans Grafana (panneaux texte).
+
+---
+
+## 📚 Ressources complémentaires
+
+- `ARCHITECTURE.md` — détails techniques et flux.
+- `sensor-simulator/README.md` — fonctionnement du générateur de télémétrie.
+- `docs/` — cas d’usage métier, FAQ, notebooks exploratoires.
+
+Bon run !

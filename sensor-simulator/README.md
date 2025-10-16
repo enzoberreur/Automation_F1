@@ -1,66 +1,51 @@
 # Ferrari F1 Sensor Simulator
 
-Simulateur haute performance de capteurs IoT pour Ferrari F1.
+Le simulateur reproduit un flux de télémétrie haute fréquence pour une monoplace de Formule&nbsp;1. Il alimente le `stream-processor` via HTTP et expose toutes les métriques requises par Prometheus/Grafana pour les dashboards fournis dans ce dépôt.
 
-## Caractéristiques
+---
 
-- 🚀 **Haute performance**: 1000-2000 messages/seconde
-- 📡 **Multi-transport**: Support Kafka et HTTP
-- 🔥 **Simulation d'anomalies**: Surchauffe freins, pneus, moteur
-- 📊 **Métriques en temps réel**: Latence, throughput, taux d'erreur
-- 🏎️ **Données réalistes**: Modèle multi-segments corrélant vitesse, freinage, pneus et météo
-- 🧠 **Insights stratégie**: Calcul du temps au tour, de la santé de relais et de la fenêtre de pit-stop
+## 🚦 Pour débuter en 2 minutes
 
-## Installation
+1. **Installer les dépendances** (Python 3.10+ recommandé) :
+   ```bash
+   pip install -r requirements.txt
+   ```
+2. **Lancer le simulateur** en mode HTTP :
+   ```bash
+   python main.py
+   ```
+3. **Consulter les métriques Prometheus** sur <http://localhost:8000/metrics> et vérifier que le `stream-processor` reçoit bien les échantillons sur <http://localhost:8001/health>.
 
-```bash
-pip install -r requirements.txt
-```
+Le simulateur affiche toutes les 5 secondes un rapport de performance (messages envoyés, throughput, latence moyenne). Arrêtez-le proprement avec `Ctrl+C`.
 
-## Configuration
+---
 
-Copiez `.env.example` vers `.env` et ajustez les paramètres :
+## 🧑‍💻 Pour les intégrateurs et ingénieurs data
 
-```bash
-cp .env.example .env
-```
+- **Stack complète** : exécuter `make start` à la racine du dépôt pour démarrer les services Docker (Prometheus, Grafana, stream-processor, etc.).
+- **Dashboards Grafana** : importer les JSON du dossier `monitoring/` ou lancer `./import-dashboard.sh` (les dashboards sont automatiquement importés par `make start`).
+- **Observabilité** : le simulateur démarre un endpoint Prometheus (`:8000/metrics`) et pousse la télémétrie vers le `stream-processor` (`:8001/telemetry`). Les panneaux Grafana utilisent directement ces métriques.
 
-Variables disponibles :
-- `TELEMETRY_MODE`: Mode de transport (kafka/http)
-- `TARGET_THROUGHPUT`: Messages par seconde (1000-2000)
-- `CAR_ID`: Identifiant de la voiture
-- `DRIVER`: Nom du pilote
-- `KAFKA_BOOTSTRAP_SERVERS`: Serveurs Kafka
-- `KAFKA_TOPIC`: Topic Kafka
-- `HTTP_ENDPOINT`: Endpoint HTTP
+---
 
-## Utilisation
+## ⚙️ Configuration
 
-### Mode Kafka
+Les variables d'environnement suivantes permettent d'ajuster le comportement du simulateur :
 
-```bash
-# Démarrer Kafka localement (avec Docker)
-docker run -d --name kafka -p 9092:9092 \
-  -e KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://localhost:9092 \
-  confluentinc/cp-kafka:latest
+| Variable | Description | Valeur par défaut |
+|----------|-------------|-------------------|
+| `CAR_ID` | Identifiant voiture | `Ferrari-F1-75` |
+| `DRIVER` | Pilote associé | `Charles Leclerc` |
+| `TARGET_THROUGHPUT` | Messages envoyés par seconde (doit être > 0) | `1500` |
+| `HTTP_ENDPOINT` | Endpoint HTTP du `stream-processor` | `http://stream-processor:8001/telemetry` |
 
-# Lancer le simulateur
-export TELEMETRY_MODE=kafka
-python main.py
-```
+Le simulateur valide automatiquement `TARGET_THROUGHPUT` : une valeur invalide ou négative est ignorée et un avertissement est loggé.
 
-### Mode HTTP
+---
 
-```bash
-# Lancer le simulateur
-export TELEMETRY_MODE=http
-export HTTP_ENDPOINT=http://localhost:8001/telemetry
-python main.py
-```
+## 🛰️ Modèle de données produit
 
-## Format des données
-
-Chaque message contient :
+Chaque message suit la structure suivante :
 
 ```json
 {
@@ -105,75 +90,47 @@ Chaque message contient :
 }
 ```
 
-### Insights stratégie
+### Insights de stratégie
 
-Les nouveaux champs `lap_time_seconds`, `stint_health_score` et `pit_window_probability` synthétisent l'état du relais en croisant l'usure, les températures, l'humidité et le carburant. `surface_condition` indique le comportement de la piste (cool, optimal, hot, damp) tandis que `strategy_recommendation` propose une action (`extend`, `evaluate`, `pit_soon`).
+Les champs `lap_time_seconds`, `stint_health_score` et `pit_window_probability` synthétisent l'état du relais en combinant l'usure, les températures, l'humidité et le carburant. `surface_condition` décrit le grip actuel de la piste (`cool`, `optimal`, `hot`, `damp`) et `strategy_recommendation` suggère l'action à mener (`extend`, `evaluate`, `pit_soon`).
 
-Les métriques Prometheus correspondantes alimentent les dashboards Grafana améliorés :
+---
 
-- `ferrari_simulator_lap_time_seconds` et `ferrari_simulator_stint_health_score` pour suivre les temps au tour et la santé du relais.
-- `ferrari_simulator_pit_window_probability` pour monitorer l'ouverture de la fenêtre de pit-stop (0-1).
-- `ferrari_simulator_surface_condition_info{condition="…"}` expose un état binaire par condition de piste.
-- `ferrari_simulator_surface_condition_state` encode la condition de piste actuelle (0 optimal → 3 humide) pour les timelines.
-- `ferrari_simulator_strategy_recommendation_info{recommendation="…"}` active la recommandation courante.
-- `ferrari_simulator_strategy_recommendation_state` encode la recommandation (`extend`, `evaluate`, `pit_soon`).
+## 📈 Métriques Prometheus exposées
 
-## Anomalies simulées
+| Nom | Description |
+|-----|-------------|
+| `ferrari_simulator_messages_generated_total` | Messages générés par le simulateur |
+| `ferrari_simulator_messages_sent_total` | Messages acceptés par le stream-processor |
+| `ferrari_simulator_send_errors_total` | Erreurs de transmission HTTP |
+| `ferrari_simulator_send_latency_seconds` | Histogramme de latence d'envoi |
+| `ferrari_simulator_current_throughput_msg_per_sec` | Débit instantané |
+| `ferrari_simulator_*` | Toutes les jauges de télémétrie (freins, pneus, moteur, carburant, stratégie) |
+| `ferrari_simulator_surface_condition_state` | Condition de piste (0 = optimal … 3 = damp) |
+| `ferrari_simulator_strategy_recommendation_state` | Recommandation courante (0 = extend … 2 = pit_soon) |
 
-Types d'anomalies :
-- `brake_overheat`: Surchauffe des freins
-- `tire_overheat`: Surchauffe des pneus
-- `tire_pressure_loss`: Perte de pression pneu
-- `engine_overheat`: Surchauffe moteur
-- `brake_fade`: Perte d'efficacité freinage
+Ces métriques alimentent directement les dashboards `monitoring/grafana_dashboard_main.json` et `monitoring/grafana_dashboard_strategy.json`.
 
-Sévérités :
-- `warning`: Attention requise
-- `critical`: Intervention urgente
+---
 
-## Performance
+## ⚠️ Anomalies simulées
 
-Le simulateur affiche des rapports toutes les 5 secondes :
+| Type | Effet |
+|------|-------|
+| `brake_overheat` | Augmentation température freins sur les 4 roues |
+| `tire_overheat` | Augmentation température pneus sur les 4 roues |
+| `tire_pressure_loss` | Perte de pression sur les 4 pneus |
+| `engine_overheat` | Surchauffe moteur |
+| `brake_fade` | Réduction de la pression de freinage |
 
-```
-╔══════════════════════════════════════════════════════════════╗
-║ 🏎️  Ferrari F1 Telemetry Simulator - Performance Report     ║
-╠══════════════════════════════════════════════════════════════╣
-║ Messages envoyés:          7500 msg                          ║
-║ Messages échoués:             5 msg                          ║
-║ Débit (throughput):     1498.50 msg/s                        ║
-║ Latence moyenne:           0.85 ms                           ║
-║ Uptime:                    5.00 s                            ║
-╚══════════════════════════════════════════════════════════════╝
-```
+Chaque anomalie est générée avec une probabilité configurable dans le code (`AnomalySimulator`) et peut être de sévérité `warning` ou `critical`.
 
-## Docker
+---
 
-### Build
+## 🛠️ Dépannage
 
-```bash
-docker build -t ferrari-sensor-simulator:latest .
-```
+- **`ModuleNotFoundError: aiohttp`** → installer la dépendance (`pip install aiohttp`).
+- **Aucun point `/metrics`** → vérifier que `prometheus_client` est installé. Sans cette librairie, l'application continue de tourner mais les métriques sont désactivées.
+- **Erreurs HTTP fréquentes** → vérifier que le `stream-processor` écoute bien sur `HTTP_ENDPOINT`. Les erreurs sont comptabilisées dans `ferrari_simulator_send_errors_total`.
 
-### Run
-
-```bash
-# Mode Kafka
-docker run -e TELEMETRY_MODE=kafka \
-  -e KAFKA_BOOTSTRAP_SERVERS=kafka:9092 \
-  -e TARGET_THROUGHPUT=1500 \
-  ferrari-sensor-simulator:latest
-
-# Mode HTTP
-docker run -e TELEMETRY_MODE=http \
-  -e HTTP_ENDPOINT=http://stream-processor:8001/telemetry \
-  ferrari-sensor-simulator:latest
-```
-
-## Kubernetes
-
-Voir `sensor-simulator-deployment.yaml` pour le déploiement Kubernetes.
-
-```bash
-kubectl apply -f sensor-simulator-deployment.yaml
-```
+Pour une compréhension approfondie de l'architecture globale (Airflow, stream-processor, dashboards), consultez le README à la racine du dépôt ainsi que `ARCHITECTURE.md`.

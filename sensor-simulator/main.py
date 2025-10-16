@@ -1,20 +1,15 @@
 #!/usr/bin/env python3
-"""
-Ferrari F1 IoT Sensor Simulator - High Performance Edition
-Génère 1000-2000 messages/seconde de télémétrie avec support HTTP
-"""
+"""Ferrari F1 IoT Sensor Simulator - High Performance Edition."""
 
-import json
 import time
 import random
 import logging
 import asyncio
 import os
+import threading
 from datetime import datetime
 from typing import Dict, List, Optional
 from dataclasses import dataclass, asdict
-from concurrent.futures import ThreadPoolExecutor
-import threading
 from contextlib import nullcontext
 
 # Import pour HTTP
@@ -27,7 +22,7 @@ except ImportError:
 
 # Import pour métriques Prometheus
 try:
-    from prometheus_client import Counter, Histogram, Gauge, start_http_server, generate_latest
+    from prometheus_client import Counter, Histogram, Gauge, start_http_server
     PROMETHEUS_AVAILABLE = True
 except ImportError:
     PROMETHEUS_AVAILABLE = False
@@ -763,20 +758,30 @@ class HTTPPublisher:
         self.update_thermal_metrics(data)
         
         try:
+            response_status = None
             with send_latency.time() if send_latency else nullcontext():
                 async with self.session.post(
                     self.endpoint_url,
                     json=data_dict,
                     timeout=aiohttp.ClientTimeout(total=1)
                 ) as response:
-                    await response.text()  # Consomme la réponse
-                    latency = time.time() - start
-                    
-                    # Incrémenter le compteur de messages envoyés avec succès
-                    if messages_sent:
-                        messages_sent.inc()
-                    
-                    return latency
+                    response_status = response.status
+                    await response.text()  # Consomme la réponse pour libérer la connexion
+
+            latency = time.time() - start
+
+            if 200 <= (response_status or 0) < 400:
+                if messages_sent:
+                    messages_sent.inc()
+            else:
+                if send_errors:
+                    send_errors.inc()
+                logger.warning(
+                    "Réponse HTTP inattendue du stream-processor: %s",
+                    response_status,
+                )
+
+            return latency
         except Exception as e:
             # Incrémenter le compteur d'erreurs
             if send_errors:
@@ -791,8 +796,8 @@ class HTTPPublisher:
 
 
 class FerrariSensorSimulator:
-    """Simulateur principal haute performance"""
-    
+    """Simulateur principal haute performance."""
+
     def __init__(self, config: Dict):
         self.config = config
         self.generator = FerrariTelemetryGenerator(
@@ -801,25 +806,13 @@ class FerrariSensorSimulator:
         )
         self.metrics = MetricsCollector()
         self.running = False
-        self.publisher = None
-        
-        # Configuration du mode de transport
-        self.mode = config.get("mode", "http").lower()
-        self.target_throughput = config.get("target_throughput", 1500)  # msg/s
-        
+        self.publisher: Optional[HTTPPublisher] = None
+        self.http_endpoint = config.get("http_endpoint", "http://localhost:8001/telemetry")
+        self.target_throughput = max(1, config.get("target_throughput", 1500))
+
         # Démarrer serveur métriques Prometheus
         self.start_metrics_server()
-        
-    def setup_publisher(self):
-        """Configure le publisher HTTP"""
-        if self.mode != "http":
-            logger.warning(f"⚠️  Mode '{self.mode}' non supporté, passage en mode HTTP")
-            self.mode = "http"
-            
-        self.publisher = HTTPPublisher(
-            endpoint_url=self.config.get("http_endpoint", "http://localhost:8001/telemetry")
-        )
-    
+
     def start_metrics_server(self):
         """Démarre le serveur HTTP pour les métriques Prometheus"""
         if PROMETHEUS_AVAILABLE:
@@ -829,27 +822,28 @@ class FerrariSensorSimulator:
                 logger.info("🔍 Serveur de métriques Prometheus démarré sur :8000/metrics")
             except Exception as e:
                 logger.warning(f"⚠️  Impossible de démarrer le serveur de métriques: {e}")
-    
+
     async def run_async(self):
         """Exécution asynchrone (pour HTTP)"""
-        logger.info(f"🏁 Démarrage du simulateur en mode {self.mode.upper()}")
+        if not HTTP_AVAILABLE:
+            raise RuntimeError("aiohttp est requis pour le mode HTTP. Installez 'aiohttp'.")
+
+        logger.info("🏁 Démarrage du simulateur en mode HTTP")
         logger.info(f"🎯 Objectif: {self.target_throughput} messages/s")
-        
-        self.setup_publisher()
-        
-        if self.mode == "http":
-            await self.publisher.initialize()
-        
+
+        self.publisher = HTTPPublisher(endpoint_url=self.http_endpoint)
+        await self.publisher.initialize()
+
         self.running = True
-        
+
         # Calcul du délai entre messages pour atteindre le throughput cible
-        delay = 1.0 / self.target_throughput
-        
+        delay = max(0.0, 1.0 / self.target_throughput)
+
         try:
             while self.running:
                 # Génération du message
                 telemetry = self.generator.generate()
-                
+
                 # Envoi HTTP
                 try:
                     latency = await self.publisher.send(telemetry)
@@ -857,82 +851,58 @@ class FerrariSensorSimulator:
                 except Exception as e:
                     logger.error(f"Erreur d'envoi: {e}")
                     self.metrics.record_failure()
-                
+
                 # Rapport périodique
                 if self.metrics.should_report(interval=5):
                     self.metrics.print_report()
-                
+
                 # Délai pour contrôler le throughput
                 await asyncio.sleep(delay)
-                
+
         except KeyboardInterrupt:
             logger.info("\n🛑 Arrêt du simulateur...")
         finally:
-            if self.mode == "http":
+            if self.publisher:
                 await self.publisher.close()
             # Rapport final
             self.metrics.print_report()
-    
-    def run_sync(self):
-        """Exécution synchrone (mode de compatibilité)"""
-        logger.info(f"🏁 Démarrage du simulateur en mode {self.mode.upper()}")
-        logger.info(f"🎯 Objectif: {self.target_throughput} messages/s")
-        
-        self.setup_publisher()
-        self.running = True
-        
-        # Calcul du délai entre messages
-        delay = 1.0 / self.target_throughput
-        
-        try:
-            while self.running:
-                # Génération du message
-                telemetry = self.generator.generate()
-                
-                # Envoi
-                try:
-                    latency = self.publisher.send(telemetry)
-                    self.metrics.record_success(latency)
-                except Exception as e:
-                    logger.error(f"Erreur d'envoi: {e}")
-                    self.metrics.record_failure()
-                
-                # Rapport périodique
-                if self.metrics.should_report(interval=5):
-                    self.metrics.print_report()
-                
-                # Délai pour contrôler le throughput
-                time.sleep(delay)
-                
-        except KeyboardInterrupt:
-            logger.info("\n🛑 Arrêt du simulateur...")
-        finally:
-            if self.mode == "kafka":
-                self.publisher.close()
-            
-            # Rapport final
-            self.metrics.print_report()
-    
+
     def run(self):
         """Point d'entrée principal"""
         asyncio.run(self.run_async())
 
 
+def _int_from_env(name: str, default: int) -> int:
+    """Lit un entier dans l'environnement en appliquant une validation."""
+
+    raw_value = os.getenv(name)
+    if raw_value is None:
+        return default
+
+    try:
+        parsed = int(raw_value)
+        if parsed <= 0:
+            raise ValueError
+        return parsed
+    except ValueError:
+        logger.warning(
+            "⚠️  Valeur invalide '%s' pour %s. Utilisation de la valeur par défaut %s.",
+            raw_value,
+            name,
+            default,
+        )
+        return default
+
+
 def load_config() -> Dict:
-    """Charge la configuration depuis les variables d'environnement"""
-    config = {
-        "mode": os.getenv("TELEMETRY_MODE", "http"),  # http uniquement
+    """Charge la configuration depuis les variables d'environnement."""
+
+    return {
         "car_id": os.getenv("CAR_ID", "Ferrari-F1-75"),
         "driver": os.getenv("DRIVER", "Charles Leclerc"),
-        "target_throughput": int(os.getenv("TARGET_THROUGHPUT", "1500")),
-        
-
-        
-        # HTTP
+        "target_throughput": _int_from_env("TARGET_THROUGHPUT", 1500),
         "http_endpoint": os.getenv("HTTP_ENDPOINT", "http://stream-processor:8001/telemetry"),
     }
-    
-    return config
 
 
 def main():
