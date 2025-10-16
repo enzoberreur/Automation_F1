@@ -1,4 +1,4 @@
-# 🏎️ Ferrari F1 IoT Smart Pit-Stop
+# Ferrari F1 IoT Smart Pit-Stop
 
 Plateforme de télémétrie et de monitoring inspirée d'un mur des stands de Formule 1. Le dépôt rassemble :
 
@@ -11,7 +11,7 @@ L'objectif : fournir un environnement réaliste pour expérimenter des pipelines
 
 ---
 
-## 🚦 Démarrage rapide (tout en Docker)
+## Démarrage rapide (tout en Docker)
 
 Pré-requis : Docker, Docker Compose et `make`.
 
@@ -28,7 +28,7 @@ Cette commande :
 2. reconstruit et démarre les conteneurs nécessaires ;
 3. importe automatiquement les dashboards Grafana.
 
-> ℹ️ Les identifiants par défaut sont `admin / admin` pour Grafana et Airflow. La clé API `STREAM_PROCESSOR_API_KEY` est partagée automatiquement entre le simulateur et le stream processor lorsqu'elle est définie dans l'environnement.
+> Les identifiants par défaut sont `admin / admin` pour Grafana et Airflow. La clé API `STREAM_PROCESSOR_API_KEY` est partagée automatiquement entre le simulateur et le stream processor lorsqu'elle est définie dans l'environnement.
 
 Une fois le stack prêt, accédez au poste de commande principal : <http://localhost:3000/d/ferrari-strategy-dashboard>.
 
@@ -48,7 +48,7 @@ La commande supprime également les dossiers `__pycache__` générés par Python
 
 ----
 
-## 🧪 Démarrage léger (simulateur seul)
+## Démarrage léger (simulateur seul)
 
 Pour tester uniquement le flux de télémétrie :
 
@@ -66,7 +66,7 @@ Consultez `sensor-simulator/README.md` pour un guide détaillé (configuration, 
 
 ---
 
-## 🔌 Services & ports
+## Services & ports
 
 | Service | Rôle | Port local |
 |---------|------|------------|
@@ -81,7 +81,7 @@ La configuration Docker Compose se trouve dans `docker-compose.yml`. Les manifes
 
 ---
 
-## 🔐 Sécurité & conformité
+## Sécurité & conformité
 
 - **Clé API obligatoire** : le flux `/telemetry` du `stream-processor` refuse toute requête ne comportant pas l'en-tête `X-Api-Key`. La clé est injectée via la variable d'environnement `STREAM_PROCESSOR_API_KEY` partagée avec le simulateur.
 - **Limitation réseau Kubernetes** : `k8s/networkpolicy.yaml` autorise uniquement le simulateur, Airflow et les outils d'observabilité à contacter le stream processor sur le cluster.
@@ -90,7 +90,7 @@ La configuration Docker Compose se trouve dans `docker-compose.yml`. Les manifes
 
 ---
 
-## 📊 Dashboards Grafana
+## Dashboards Grafana
 
 Les définitions JSON des dashboards résident dans `monitoring/` :
 
@@ -108,7 +108,7 @@ ou passer par l’UI Grafana (`Dashboards → Import`) en collant le contenu JSO
 
 ---
 
-## 📈 Métriques clés
+## Métriques clés
 
 Les dashboards s'appuient principalement sur :
 
@@ -121,7 +121,7 @@ Toutes les métriques exposées par le simulateur sont décrites dans `sensor-si
 
 ---
 
-## 🗺️ Architecture (aperçu)
+## Architecture (aperçu)
 
 1. **Sensor Simulator** — orchestre 20 voitures (10 équipes officielles), applique anomalies et calcule des insights de stratégie.
 2. **Stream Processor** — consomme les événements HTTP, calcule des KPI temps réel et persiste l’état.
@@ -133,7 +133,7 @@ Le document `ARCHITECTURE.md` fournit une description complète (diagrammes, flu
 
 ---
 
-## 🧭 Pourquoi cette architecture ?
+## Pourquoi cette architecture ?
 
 ### 1. Ingestion HTTP + métriques Prometheus
 - **Choix actuel** : un simulateur Python publie la télémétrie via une API HTTP et expose les métriques Prometheus sur le même pod.
@@ -162,7 +162,7 @@ Le document `ARCHITECTURE.md` fournit une description complète (diagrammes, flu
 
 ---
 
-## 🚀 Scalabilité : aujourd'hui et demain
+## Scalabilité : aujourd'hui et demain
 
 ### Capacités actuelles
 - Le simulateur sature un CPU autour de ~300k événements/s tout en gardant des latences < 1 ms.
@@ -184,7 +184,7 @@ Ces étapes suffisent pour passer d’un laboratoire à une plateforme qui suppo
 
 ---
 
-## 🛠️ Développement & contributions
+## Développement & contributions
 
 1. Créer une branche (`git checkout -b feature/xxx`).
 2. Lancer les tests locaux si disponibles (ex. `python -m compileall sensor-simulator/main.py`).
@@ -195,7 +195,7 @@ Des benchmarks, guides d’usage et cas métiers supplémentaires sont disponibl
 
 ---
 
-## ❓ Dépannage rapide
+## Dépannage rapide
 
 ---
 
@@ -213,7 +213,7 @@ Pour aller plus loin :
 
 ---
 
-## 📚 Ressources complémentaires
+## Ressources complémentaires
 
 - `ARCHITECTURE.md` — détails techniques et flux.
 - `sensor-simulator/README.md` — fonctionnement du générateur de télémétrie.
