@@ -44,6 +44,19 @@ logger = logging.getLogger(__name__)
 SURFACE_CONDITIONS = ("optimal", "hot", "cool", "damp")
 STRATEGY_ACTIONS = ("extend", "evaluate", "pit_soon")
 
+SURFACE_CONDITION_INDEX = {
+    "optimal": 0,
+    "cool": 1,
+    "hot": 2,
+    "damp": 3,
+}
+
+STRATEGY_RECOMMENDATION_INDEX = {
+    "extend": 0,
+    "evaluate": 1,
+    "pit_soon": 2,
+}
+
 # ============================================================================
 # MÉTRIQUES PROMETHEUS - FERRARI F1 THERMAL COCKPIT
 # ============================================================================
@@ -126,6 +139,16 @@ if PROMETHEUS_AVAILABLE:
         'Recommandation stratégique active (gauge binaire par action)',
         ['recommendation']
     )
+
+    surface_condition_state = Gauge(
+        'ferrari_simulator_surface_condition_state',
+        'Indice numérique de condition de piste (0 optimal, 3 humide)'
+    )
+
+    strategy_recommendation_state = Gauge(
+        'ferrari_simulator_strategy_recommendation_state',
+        'Indice numérique de recommandation stratégique (0 extend, 2 pit)'
+    )
 else:
     # Mock objects si Prometheus n'est pas disponible
     messages_generated = None
@@ -142,6 +165,7 @@ else:
     lap_number = brake_pressure_bar = None
     lap_time_seconds = stint_health_score = pit_window_probability = None
     surface_condition_info = strategy_recommendation_info = None
+    surface_condition_state = strategy_recommendation_state = None
 
 
 @dataclass
@@ -709,10 +733,16 @@ class HTTPPublisher:
                 for condition in SURFACE_CONDITIONS:
                     value = 1.0 if data.surface_condition == condition else 0.0
                     surface_condition_info.labels(condition=condition).set(value)
+            if surface_condition_state:
+                surface_index = SURFACE_CONDITION_INDEX.get(data.surface_condition, 0)
+                surface_condition_state.set(surface_index)
             if strategy_recommendation_info:
                 for action in STRATEGY_ACTIONS:
                     value = 1.0 if data.strategy_recommendation == action else 0.0
                     strategy_recommendation_info.labels(recommendation=action).set(value)
+            if strategy_recommendation_state:
+                recommendation_index = STRATEGY_RECOMMENDATION_INDEX.get(data.strategy_recommendation, 0)
+                strategy_recommendation_state.set(recommendation_index)
 
         except Exception as e:
             logger.debug(f"Erreur mise à jour métriques thermiques: {e}")

@@ -381,14 +381,61 @@
         "datasource": "Prometheus",
         "targets": [
           {
-            "expr": "ferrari_simulator_surface_condition_info",
+            "expr": "ferrari_simulator_surface_condition_state",
+            "legendFormat": "Surface",
             "refId": "A"
           }
         ],
+        "fieldConfig": {
+          "defaults": {
+            "mappings": [
+              {
+                "options": {
+                  "0": {
+                    "text": "Optimal"
+                  },
+                  "1": {
+                    "text": "Cool"
+                  },
+                  "2": {
+                    "text": "Hot"
+                  },
+                  "3": {
+                    "text": "Damp"
+                  }
+                },
+                "type": "value"
+              }
+            ],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green"
+                },
+                {
+                  "color": "blue",
+                  "value": 0.5
+                },
+                {
+                  "color": "orange",
+                  "value": 1.5
+                },
+                {
+                  "color": "red",
+                  "value": 2.5
+                },
+                {
+                  "color": "purple",
+                  "value": 3.5
+                }
+              ]
+            }
+          }
+        },
         "options": {
           "legend": {
-            "displayMode": "list",
-            "placement": "bottom"
+            "displayMode": "hidden"
           }
         }
       },
@@ -405,14 +452,54 @@
         "datasource": "Prometheus",
         "targets": [
           {
-            "expr": "ferrari_simulator_strategy_recommendation_info",
+            "expr": "ferrari_simulator_strategy_recommendation_state",
+            "legendFormat": "Recommendation",
             "refId": "A"
           }
         ],
+        "fieldConfig": {
+          "defaults": {
+            "mappings": [
+              {
+                "options": {
+                  "0": {
+                    "text": "Extend"
+                  },
+                  "1": {
+                    "text": "Evaluate"
+                  },
+                  "2": {
+                    "text": "Pit soon"
+                  }
+                },
+                "type": "value"
+              }
+            ],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green"
+                },
+                {
+                  "color": "yellow",
+                  "value": 0.5
+                },
+                {
+                  "color": "red",
+                  "value": 1.5
+                },
+                {
+                  "color": "dark-red",
+                  "value": 2.5
+                }
+              ]
+            }
+          }
+        },
         "options": {
           "legend": {
-            "displayMode": "list",
-            "placement": "bottom"
+            "displayMode": "hidden"
           }
         }
       },

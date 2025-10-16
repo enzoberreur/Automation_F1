@@ -114,7 +114,9 @@ Les métriques Prometheus correspondantes alimentent les dashboards Grafana amé
 - `ferrari_simulator_lap_time_seconds` et `ferrari_simulator_stint_health_score` pour suivre les temps au tour et la santé du relais.
 - `ferrari_simulator_pit_window_probability` pour monitorer l'ouverture de la fenêtre de pit-stop (0-1).
 - `ferrari_simulator_surface_condition_info{condition="…"}` expose un état binaire par condition de piste.
+- `ferrari_simulator_surface_condition_state` encode la condition de piste actuelle (0 optimal → 3 humide) pour les timelines.
 - `ferrari_simulator_strategy_recommendation_info{recommendation="…"}` active la recommandation courante.
+- `ferrari_simulator_strategy_recommendation_state` encode la recommandation (`extend`, `evaluate`, `pit_soon`).
 
 ## Anomalies simulées
 
