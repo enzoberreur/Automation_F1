@@ -27,7 +27,7 @@
 
 ## Composants détaillés
 
-### 🏁 Sensor Simulator
+### Sensor Simulator
 - **Rôle** : Génère des données de télémétrie F1 réalistes
 - **Technologies** : Python 3.11, FastAPI, Prometheus client
 - **Métriques** : 272K+ messages/s, latence 0.46ms
@@ -35,7 +35,7 @@
   - `:8001/health` - Status de santé
   - `:8000/metrics` - Métriques Prometheus
 
-### ⚡ Stream Processor
+### Stream Processor
 - **Rôle** : Traitement temps réel des données de course
 - **Fonctionnalités** :
   - Scoring automatique des pit-stops
@@ -43,7 +43,7 @@
   - Calcul de performance Ferrari
 - **APIs** : REST endpoints pour analytics
 
-### 📊 Monitoring Stack
+### Monitoring Stack
 
 #### Prometheus
 - **Port** : 9090
@@ -65,7 +65,7 @@
 - **Port** : 8080
 - **Fonction** : Métriques des conteneurs Docker
 
-### 🔄 Apache Airflow
+### Apache Airflow
 - **Port** : 8080
 - **Rôle** : Orchestration des workflows analytiques
 - **DAGs principaux** :
@@ -74,7 +74,7 @@
   - ETL batch pour données historiques
   - Rapports automatisés de performance
 
-### 💾 Persistence Layer
+### Persistence Layer
 
 #### PostgreSQL
 - **Port** : 5432
