@@ -11,7 +11,7 @@ import logging
 import time
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, fields
 from collections import deque
 import os
 
@@ -141,7 +141,14 @@ class TelemetryData:
     track_temp_celsius: float
     air_temp_celsius: float
     humidity_percent: float
-    
+
+    # Insights stratégie (ajout multi-équipe)
+    lap_time_seconds: float
+    stint_health_score: float
+    pit_window_probability: float
+    surface_condition: str
+    strategy_recommendation: str
+
     # Anomalies du simulateur
     has_anomaly: bool = False
     anomaly_type: Optional[str] = None
@@ -466,9 +473,26 @@ class StreamProcessor:
         start_time = time.time()
         
         try:
-            # Parser les données
-            telemetry = TelemetryData(**data)
-            
+            # Parser les données (en filtrant les champs inattendus)
+            allowed_fields = {f.name for f in fields(TelemetryData)}
+            unknown_keys = [key for key in data.keys() if key not in allowed_fields]
+            if unknown_keys:
+                logger.debug("Champs télémétrie inconnus ignorés: %s", unknown_keys)
+
+            telemetry_payload = {key: value for key, value in data.items() if key in allowed_fields}
+
+            try:
+                telemetry = TelemetryData(**telemetry_payload)
+            except TypeError as exc:
+                missing = [name for name in allowed_fields if name not in telemetry_payload]
+                logger.error(
+                    "Payload télémétrie invalide (manquants=%s, inconnus=%s): %s",
+                    missing,
+                    unknown_keys,
+                    exc,
+                )
+                raise
+
             # Métriques Prometheus
             messages_received.inc()
             message_size.observe(len(json.dumps(data)))

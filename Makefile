@@ -19,7 +19,7 @@ start: ## 🚀 Démarrage complet Ferrari F1 IoT
 	@echo "========================================"
 	@echo ""
 	@echo "🐳 Démarrage des services..."
-	@docker-compose up -d
+	@docker-compose up --build -d
 	@echo ""
 	@echo "⏳ Attente des services (intelligent)..."
 	@$(MAKE) wait-services

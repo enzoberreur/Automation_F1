@@ -8,10 +8,9 @@ services:
       dockerfile: Dockerfile
     container_name: ferrari-sensor-simulator
     environment:
-      - TELEMETRY_MODE=http
+      - SIMULATION_MODE=championship
       - HTTP_ENDPOINT=http://ferrari-stream-processor:8001/telemetry
-      - TARGET_THROUGHPUT=1000
-      - SENSOR_INTERVAL=5
+      - TARGET_THROUGHPUT_PER_CAR=250
     ports:
       - "8000:8000"
     depends_on:
