@@ -149,7 +149,11 @@ services:
       - grafana-data:/var/lib/grafana
       - ./monitoring/grafana-datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml
       - ./monitoring/grafana-dashboards-provisioning.yml:/etc/grafana/provisioning/dashboards/dashboards.yml
-      - ./monitoring/grafana_dashboard.json:/etc/grafana/dashboards/grafana_dashboard.json
+      - ./monitoring/grafana_dashboard_main.json:/etc/grafana/dashboards/main.json
+      - ./monitoring/grafana_dashboard_strategy.json:/etc/grafana/dashboards/strategy.json
+      - ./monitoring/grafana_dashboard_data.json:/etc/grafana/dashboards/data.json
+      - ./monitoring/grafana_dashboard_data_quality.json:/etc/grafana/dashboards/data_quality.json
+      - ./monitoring/grafana_dashboard_engineer.json:/etc/grafana/dashboards/engineer.json
     depends_on:
       - prometheus
     restart: unless-stopped

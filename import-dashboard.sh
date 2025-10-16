@@ -111,9 +111,10 @@ PY
     fi
 }
 
-# Import du dashboard Thermal Demo avec vérification d'existence
-log "📊 Import du dashboard Ferrari F1 Monitoring"
-import_dashboard "monitoring/grafana_dashboard.json" "Ferrari F1 IoT - Smart Pit Stop Monitoring Dashboard" "ferrari-f1-dashboard"
+# Import des dashboards multi-écuries avec vérification d'existence
+log "📊 Import des dashboards multi-écuries"
+import_dashboard "monitoring/grafana_dashboard_main.json" "F1 Multi-Team - Main Operations" "ferrari-main-dashboard"
+import_dashboard "monitoring/grafana_dashboard_strategy.json" "F1 Multi-Team - Strategy" "ferrari-strategy-dashboard"
 
 log ""
 if [ "$SILENT" != "--silent" ]; then

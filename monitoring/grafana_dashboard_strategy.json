@@ -1,11 +1,12 @@
 {
   "dashboard": {
     "id": null,
-    "title": "Ferrari F1 - Strategy Command",
+    "uid": "ferrari-strategy-dashboard",
+    "title": "F1 Multi-Team - Strategy",
     "tags": [
       "strategy",
       "pitstop",
-      "ferrari"
+      "multi-team"
     ],
     "schemaVersion": 30,
     "version": 1,
