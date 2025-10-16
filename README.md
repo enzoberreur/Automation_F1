@@ -21,9 +21,9 @@ cd Automation_F1
 make start
 ```
 
-La commande :
-1. construit et démarre les services (simulateur, stream-processor, Prometheus, Grafana, Airflow, cAdvisor) ;
-2. attend que les sondes de santé répondent ;
+Cette commande :
+1. arrête toute exécution précédente (`docker compose down --remove-orphans`) ;
+2. reconstruit et démarre les conteneurs nécessaires ;
 3. importe automatiquement les dashboards Grafana.
 
 > ℹ️ Les identifiants par défaut sont `admin / admin` pour Grafana et Airflow.
@@ -36,7 +36,15 @@ Pour arrêter et nettoyer :
 make stop
 ```
 
----
+Pour repartir de zéro (conteneurs arrêtés + volumes supprimés) :
+
+```bash
+make clean
+```
+
+La commande supprime également les dossiers `__pycache__` générés par Python.
+
+----
 
 ## 🧪 Démarrage léger (simulateur seul)
 
@@ -135,8 +143,8 @@ Des benchmarks, guides d’usage et cas métiers supplémentaires sont disponibl
 | Erreurs HTTP dans le simulateur | Stream-processor injoignable | Lancer `docker-compose up stream-processor` ou ajuster `HTTP_ENDPOINT` |
 
 Pour aller plus loin :
-- vérifier la santé des services (`make status`),
-- consulter les logs (`docker-compose logs -f --tail=100 <service>`),
+- vérifier la santé des services (`docker compose ps`),
+- consulter les logs (`docker compose logs -f --tail=100 <service>`),
 - explorer les runbooks directement dans Grafana (panneaux texte).
 
 ---
