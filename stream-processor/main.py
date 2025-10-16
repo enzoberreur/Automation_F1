@@ -11,7 +11,7 @@ import logging
 import time
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, fields
 from collections import deque
 import os
 
@@ -85,7 +85,7 @@ active_anomalies = Gauge(
 pitstop_score = Gauge(
     'ferrari_pitstop_score',
     'Score de stratégie pit-stop (0-100)',
-    ['car_id']
+    ['car_id', 'team', 'driver']
 )
 
 
@@ -98,9 +98,12 @@ class TelemetryData:
     """Structure de données télémétrie Ferrari F1 - Schema complet"""
     timestamp: str
     car_id: str
+    team: str
     driver: str
+    car_number: int
+    car_model: str
     lap: int
-    
+
     # Données de base
     speed_kmh: float
     rpm: int
@@ -138,7 +141,14 @@ class TelemetryData:
     track_temp_celsius: float
     air_temp_celsius: float
     humidity_percent: float
-    
+
+    # Insights stratégie (ajout multi-équipe)
+    lap_time_seconds: float
+    stint_health_score: float
+    pit_window_probability: float
+    surface_condition: str
+    strategy_recommendation: str
+
     # Anomalies du simulateur
     has_anomaly: bool = False
     anomaly_type: Optional[str] = None
@@ -463,9 +473,26 @@ class StreamProcessor:
         start_time = time.time()
         
         try:
-            # Parser les données
-            telemetry = TelemetryData(**data)
-            
+            # Parser les données (en filtrant les champs inattendus)
+            allowed_fields = {f.name for f in fields(TelemetryData)}
+            unknown_keys = [key for key in data.keys() if key not in allowed_fields]
+            if unknown_keys:
+                logger.debug("Champs télémétrie inconnus ignorés: %s", unknown_keys)
+
+            telemetry_payload = {key: value for key, value in data.items() if key in allowed_fields}
+
+            try:
+                telemetry = TelemetryData(**telemetry_payload)
+            except TypeError as exc:
+                missing = [name for name in allowed_fields if name not in telemetry_payload]
+                logger.error(
+                    "Payload télémétrie invalide (manquants=%s, inconnus=%s): %s",
+                    missing,
+                    unknown_keys,
+                    exc,
+                )
+                raise
+
             # Métriques Prometheus
             messages_received.inc()
             message_size.observe(len(json.dumps(data)))
@@ -485,11 +512,21 @@ class StreamProcessor:
             pitstop_rec = self.pitstop_calculator.calculate_score(telemetry, anomalies)
             
             # Mise à jour de la métrique Prometheus
-            pitstop_score.labels(car_id=telemetry.car_id).set(pitstop_rec.score)
-            
+            pitstop_score.labels(
+                car_id=telemetry.car_id,
+                team=telemetry.team,
+                driver=telemetry.driver,
+            ).set(pitstop_rec.score)
+
             if pitstop_rec.urgency in ['high', 'critical']:
                 pitstop_recommendations.inc()
-                logger.info(f"🏁 {pitstop_rec.recommendation} (Score: {pitstop_rec.score})")
+                logger.info(
+                    "🏁 [%s] %s (%s) - Score: %.1f",
+                    telemetry.team,
+                    telemetry.driver,
+                    pitstop_rec.recommendation,
+                    pitstop_rec.score,
+                )
             
             # Statistiques
             latency = time.time() - start_time
@@ -517,7 +554,11 @@ class StreamProcessor:
             # Résultat
             return {
                 "status": "processed",
+                "team": telemetry.team,
+                "driver": telemetry.driver,
                 "car_id": telemetry.car_id,
+                "car_number": telemetry.car_number,
+                "car_model": telemetry.car_model,
                 "lap": telemetry.lap,
                 "anomalies": [
                     {

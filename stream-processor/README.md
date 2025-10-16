@@ -152,14 +152,18 @@ Score pondéré (0-100) basé sur :
 - `ferrari_current_throughput_msg_per_sec`: Débit actuel
 - `ferrari_avg_processing_latency_ms`: Latence moyenne
 - `ferrari_active_anomalies`: Anomalies actives
-- `ferrari_pitstop_score`: Score pit-stop par voiture
+- `ferrari_pitstop_score`: Score pit-stop par voiture (labels `car_id`, `team`, `driver`)
 
 ## Exemple de réponse
 
 ```json
 {
   "status": "processed",
-  "car_id": "Ferrari-F1-75",
+  "team": "Scuderia Ferrari HP",
+  "driver": "Charles Leclerc",
+  "car_id": "SF24-16",
+  "car_number": 16,
+  "car_model": "SF-24",
   "lap": 15,
   "anomalies": [
     {
