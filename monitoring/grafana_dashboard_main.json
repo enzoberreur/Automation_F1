@@ -2,7 +2,7 @@
   "dashboard": {
     "id": null,
     "uid": "ferrari-main-dashboard",
-    "title": "Ferrari F1 - Main Operations",
+    "title": "F1 Multi-Team - Main Operations",
     "tags": [
       "ferrari",
       "ops",
@@ -132,7 +132,7 @@
       {
         "id": 4,
         "type": "stat",
-        "title": "Engine temp (max °C)",
+        "title": "Engine temp (max \u00b0C)",
         "gridPos": {
           "h": 3,
           "w": 4,
@@ -825,6 +825,95 @@
             "format": "table"
           }
         ]
+      },
+      {
+        "id": 36,
+        "type": "row",
+        "title": "Team comparison",
+        "gridPos": {
+          "h": 1,
+          "w": 24,
+          "x": 0,
+          "y": 49
+        }
+      },
+      {
+        "id": 37,
+        "type": "timeseries",
+        "title": "Average speed by team",
+        "datasource": "Prometheus",
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 50
+        },
+        "targets": [
+          {
+            "expr": "avg by (team) (ferrari_simulator_speed_kmh)",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "velocitykmh",
+            "custom": {
+              "drawStyle": "line",
+              "lineInterpolation": "smooth",
+              "lineWidth": 2,
+              "showPoints": "auto"
+            }
+          },
+          "overrides": []
+        },
+        "options": {
+          "legend": {
+            "displayMode": "table",
+            "placement": "bottom"
+          },
+          "tooltip": {
+            "mode": "multi"
+          }
+        }
+      },
+      {
+        "id": 38,
+        "type": "timeseries",
+        "title": "Average tire wear by team",
+        "datasource": "Prometheus",
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 50
+        },
+        "targets": [
+          {
+            "expr": "avg by (team) (ferrari_simulator_tire_wear_percent)",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "custom": {
+              "drawStyle": "line",
+              "lineInterpolation": "smooth",
+              "lineWidth": 2,
+              "showPoints": "auto"
+            }
+          },
+          "overrides": []
+        },
+        "options": {
+          "legend": {
+            "displayMode": "table",
+            "placement": "bottom"
+          },
+          "tooltip": {
+            "mode": "multi"
+          }
+        }
       }
     ]
   },

@@ -93,7 +93,7 @@ ou passer par l’UI Grafana (`Dashboards → Import`) en collant le contenu JSO
 
 Les dashboards s'appuient principalement sur :
 
-- **Flux** : `ferrari_simulator_messages_generated_total`, `ferrari_simulator_messages_sent_total`, `ferrari_simulator_current_throughput_msg_per_sec`.
+- **Flux** : `ferrari_simulator_messages_generated_total`, `ferrari_simulator_messages_sent_total`, `ferrari_simulator_current_throughput_msg_per_sec` (toutes taguées par `car_id`, `team`, `driver`).
 - **Thermique** : `ferrari_simulator_brake_temp_*_celsius`, `ferrari_simulator_tire_temp_*_celsius`, `ferrari_simulator_engine_temp_celsius`.
 - **Pneus & carburant** : `ferrari_simulator_tire_wear_percent`, `ferrari_simulator_fuel_remaining_kg`.
 - **Stratégie** : `ferrari_simulator_lap_time_seconds`, `ferrari_simulator_stint_health_score`, `ferrari_simulator_pit_window_probability`, `ferrari_simulator_surface_condition_state`, `ferrari_simulator_strategy_recommendation_state`.
@@ -104,7 +104,7 @@ Toutes les métriques exposées par le simulateur sont décrites dans `sensor-si
 
 ## 🗺️ Architecture (aperçu)
 
-1. **Sensor Simulator** — génère 1 500 messages/s, applique anomalies et calcule des insights de stratégie.
+1. **Sensor Simulator** — orchestre 20 voitures (10 équipes officielles), applique anomalies et calcule des insights de stratégie.
 2. **Stream Processor** — consomme les événements HTTP, calcule des KPI temps réel et persiste l’état.
 3. **Prometheus** — scrappe le simulateur, le stream-processor, cAdvisor.
 4. **Grafana** — visualise la télémétrie, les insights de stratégie et la santé système.

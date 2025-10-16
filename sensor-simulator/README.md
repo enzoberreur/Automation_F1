@@ -1,6 +1,6 @@
-# Ferrari F1 Sensor Simulator
+# F1 Multi-Team Sensor Simulator
 
-Le simulateur reproduit un flux de télémétrie haute fréquence pour une monoplace de Formule&nbsp;1. Il alimente le `stream-processor` via HTTP et expose toutes les métriques requises par Prometheus/Grafana pour les dashboards fournis dans ce dépôt.
+Le simulateur génère en temps réel la télémétrie de **20 monoplaces (2 par écurie officielle de Formule&nbsp;1)**. Chaque voiture publie ses mesures via HTTP vers le `stream-processor` et expose toutes les métriques nécessaires pour les dashboards Prometheus/Grafana fournis dans ce dépôt. Un mode « single car » reste disponible pour des tests ciblés.
 
 ---
 
@@ -10,9 +10,9 @@ Le simulateur reproduit un flux de télémétrie haute fréquence pour une monop
    ```bash
    pip install -r requirements.txt
    ```
-2. **Lancer le simulateur** en mode HTTP :
+2. **Lancer le simulateur** en mode championnat (multi-écuries) :
    ```bash
-   python main.py
+   python main.py  # SIMULATION_MODE=championship par défaut
    ```
 3. **Consulter les métriques Prometheus** sur <http://localhost:8000/metrics> et vérifier que le `stream-processor` reçoit bien les échantillons sur <http://localhost:8001/health>.
 
@@ -30,16 +30,50 @@ Le simulateur affiche toutes les 5 secondes un rapport de performance (message
 
 ## ⚙️ Configuration
 
-Les variables d'environnement suivantes permettent d'ajuster le comportement du simulateur :
-
 | Variable | Description | Valeur par défaut |
 |----------|-------------|-------------------|
-| `CAR_ID` | Identifiant voiture | `Ferrari-F1-75` |
-| `DRIVER` | Pilote associé | `Charles Leclerc` |
-| `TARGET_THROUGHPUT` | Messages envoyés par seconde (doit être > 0) | `1500` |
+| `SIMULATION_MODE` | `championship` pour lancer les 10 équipes (20 voitures), `single` pour une voiture personnalisée | `championship` |
 | `HTTP_ENDPOINT` | Endpoint HTTP du `stream-processor` | `http://stream-processor:8001/telemetry` |
+| `TARGET_THROUGHPUT_PER_CAR` | Messages envoyés par seconde et par voiture en mode `championship` | `250` |
+| `TARGET_THROUGHPUT` | Messages envoyés par seconde en mode `single` | `1500` |
+| `TEAM_NAME` | Nom de l'écurie (mode `single`) | `Scuderia Ferrari HP` |
+| `CAR_MODEL` | Châssis (mode `single`) | `SF-24` |
+| `CAR_NUMBER` | Numéro de course (mode `single`) | `16` |
+| `CAR_ID` | Identifiant unique de la voiture (mode `single`) | `SF-24-16` |
+| `DRIVER` | Pilote (mode `single`) | `Charles Leclerc` |
 
-Le simulateur valide automatiquement `TARGET_THROUGHPUT` : une valeur invalide ou négative est ignorée et un avertissement est loggé.
+Les paramètres numériques (`TARGET_THROUGHPUT*`, `CAR_NUMBER`) sont validés automatiquement : en cas de valeur invalide, la valeur par défaut est réappliquée et un avertissement est loggé.
+
+### Mode championnat (par défaut)
+
+Le simulateur instancie automatiquement les 10 équipes officielles de la saison actuelle, avec 2 voitures par écurie. Chaque voiture dispose d'un `car_id` unique combinant le châssis et le numéro de course. Le tableau ci-dessous résume la grille générée :
+
+| Équipe | Châssis | Pilotes | Identifiants |
+|--------|---------|---------|--------------|
+| Oracle Red Bull Racing | RB20 | Max Verstappen (#1), Sergio Pérez (#11) | `RB20-1`, `RB20-11` |
+| Mercedes-AMG Petronas F1 | W15 | Lewis Hamilton (#44), George Russell (#63) | `W15-44`, `W15-63` |
+| Scuderia Ferrari HP | SF-24 | Charles Leclerc (#16), Carlos Sainz (#55) | `SF24-16`, `SF24-55` |
+| McLaren F1 Team | MCL38 | Lando Norris (#4), Oscar Piastri (#81) | `MCL38-4`, `MCL38-81` |
+| Aston Martin Aramco F1 Team | AMR24 | Fernando Alonso (#14), Lance Stroll (#18) | `AMR24-14`, `AMR24-18` |
+| BWT Alpine F1 Team | A524 | Esteban Ocon (#31), Pierre Gasly (#10) | `A524-31`, `A524-10` |
+| Williams Racing | FW46 | Alexander Albon (#23), Logan Sargeant (#2) | `FW46-23`, `FW46-2` |
+| Visa Cash App RB F1 Team | VCARB 01 | Yuki Tsunoda (#22), Daniel Ricciardo (#3) | `VCARB01-22`, `VCARB01-3` |
+| Stake F1 Team Kick Sauber | C44 | Valtteri Bottas (#77), Zhou Guanyu (#24) | `C44-77`, `C44-24` |
+| MoneyGram Haas F1 Team | VF-24 | Kevin Magnussen (#20), Nico Hülkenberg (#27) | `VF24-20`, `VF24-27` |
+
+### Mode single car
+
+Pour n'exécuter qu'une seule voiture, positionner `SIMULATION_MODE=single` et ajuster les variables `TEAM_NAME`, `CAR_MODEL`, `CAR_NUMBER`, `CAR_ID`, `DRIVER` ainsi que `TARGET_THROUGHPUT`. Exemple :
+
+```bash
+SIMULATION_MODE=single \
+TEAM_NAME="McLaren F1 Team" \
+CAR_MODEL=MCL38 \
+CAR_NUMBER=4 \
+DRIVER="Lando Norris" \
+TARGET_THROUGHPUT=2000 \
+python main.py
+```
 
 ---
 
@@ -50,8 +84,11 @@ Chaque message suit la structure suivante :
 ```json
 {
   "timestamp": "2025-10-14T10:30:45.123456Z",
-  "car_id": "Ferrari-F1-75",
-  "driver": "Charles Leclerc",
+  "car_id": "RB20-1",
+  "team": "Oracle Red Bull Racing",
+  "driver": "Max Verstappen",
+  "car_number": 1,
+  "car_model": "RB20",
   "lap": 12,
   "speed_kmh": 312.45,
   "rpm": 17500,
@@ -109,7 +146,7 @@ Les champs `lap_time_seconds`, `stint_health_score` et `pit_window_probability` 
 | `ferrari_simulator_surface_condition_state` | Condition de piste (0 = optimal … 3 = damp) |
 | `ferrari_simulator_strategy_recommendation_state` | Recommandation courante (0 = extend … 2 = pit_soon) |
 
-Ces métriques alimentent directement les dashboards `monitoring/grafana_dashboard_main.json` et `monitoring/grafana_dashboard_strategy.json`.
+Toutes les métriques sont taguées avec les labels `car_id`, `team`, `driver`, ce qui permet de comparer facilement les voitures et les écuries dans Grafana. Elles alimentent directement les dashboards `monitoring/grafana_dashboard_main.json` et `monitoring/grafana_dashboard_strategy.json`.
 
 ---
 

@@ -52,6 +52,9 @@ STRATEGY_RECOMMENDATION_INDEX = {
     "pit_soon": 2,
 }
 
+COUNTER_LABELS = ["car_id", "team", "driver"]
+GAUGE_LABELS = ["car_id", "team", "driver"]
+
 # ============================================================================
 # MÉTRIQUES PROMETHEUS - FERRARI F1 THERMAL COCKPIT
 # ============================================================================
@@ -59,90 +62,98 @@ if PROMETHEUS_AVAILABLE:
     # Compteurs
     messages_generated = Counter(
         'ferrari_simulator_messages_generated_total',
-        'Nombre total de messages télémétrie générés'
+        'Nombre total de messages télémétrie générés',
+        COUNTER_LABELS,
     )
-    
+
     messages_sent = Counter(
-        'ferrari_simulator_messages_sent_total', 
-        'Nombre total de messages envoyés avec succès'
+        'ferrari_simulator_messages_sent_total',
+        'Nombre total de messages envoyés avec succès',
+        COUNTER_LABELS,
     )
-    
+
     send_errors = Counter(
         'ferrari_simulator_send_errors_total',
-        'Nombre total d\'erreurs d\'envoi'
+        'Nombre total d\'erreurs d\'envoi',
+        COUNTER_LABELS,
     )
-    
+
     # Histogramme pour latence d'envoi
     send_latency = Histogram(
         'ferrari_simulator_send_latency_seconds',
-        'Latence d\'envoi des messages télémétrie'
+        'Latence d\'envoi des messages télémétrie',
+        COUNTER_LABELS,
     )
-    
+
     # Gauge pour throughput en temps réel
     current_throughput = Gauge(
         'ferrari_simulator_current_throughput_msg_per_sec',
-        'Débit actuel en messages par seconde'
+        'Débit actuel en messages par seconde',
+        GAUGE_LABELS,
     )
-    
+
     # === MÉTRIQUES THERMAL COCKPIT DASHBOARD ===
-    
+
     # Températures Freins (4 roues)
-    brake_temp_fl = Gauge('ferrari_simulator_brake_temp_fl_celsius', 'Température frein avant gauche')
-    brake_temp_fr = Gauge('ferrari_simulator_brake_temp_fr_celsius', 'Température frein avant droit')
-    brake_temp_rl = Gauge('ferrari_simulator_brake_temp_rl_celsius', 'Température frein arrière gauche')
-    brake_temp_rr = Gauge('ferrari_simulator_brake_temp_rr_celsius', 'Température frein arrière droit')
-    
+    brake_temp_fl = Gauge('ferrari_simulator_brake_temp_fl_celsius', 'Température frein avant gauche', GAUGE_LABELS)
+    brake_temp_fr = Gauge('ferrari_simulator_brake_temp_fr_celsius', 'Température frein avant droit', GAUGE_LABELS)
+    brake_temp_rl = Gauge('ferrari_simulator_brake_temp_rl_celsius', 'Température frein arrière gauche', GAUGE_LABELS)
+    brake_temp_rr = Gauge('ferrari_simulator_brake_temp_rr_celsius', 'Température frein arrière droit', GAUGE_LABELS)
+
     # Températures Pneus (4 roues)
-    tire_temp_fl = Gauge('ferrari_simulator_tire_temp_fl_celsius', 'Température pneu avant gauche')
-    tire_temp_fr = Gauge('ferrari_simulator_tire_temp_fr_celsius', 'Température pneu avant droit')
-    tire_temp_rl = Gauge('ferrari_simulator_tire_temp_rl_celsius', 'Température pneu arrière gauche')
-    tire_temp_rr = Gauge('ferrari_simulator_tire_temp_rr_celsius', 'Température pneu arrière droit')
-    
+    tire_temp_fl = Gauge('ferrari_simulator_tire_temp_fl_celsius', 'Température pneu avant gauche', GAUGE_LABELS)
+    tire_temp_fr = Gauge('ferrari_simulator_tire_temp_fr_celsius', 'Température pneu avant droit', GAUGE_LABELS)
+    tire_temp_rl = Gauge('ferrari_simulator_tire_temp_rl_celsius', 'Température pneu arrière gauche', GAUGE_LABELS)
+    tire_temp_rr = Gauge('ferrari_simulator_tire_temp_rr_celsius', 'Température pneu arrière droit', GAUGE_LABELS)
+
     # Performance & Moteur
-    engine_temp = Gauge('ferrari_simulator_engine_temp_celsius', 'Température moteur')
-    speed_kmh = Gauge('ferrari_simulator_speed_kmh', 'Vitesse en km/h')
-    rpm = Gauge('ferrari_simulator_rpm', 'Régime moteur RPM')
-    throttle_percent = Gauge('ferrari_simulator_throttle_percent', 'Position accélérateur %')
-    
+    engine_temp = Gauge('ferrari_simulator_engine_temp_celsius', 'Température moteur', GAUGE_LABELS)
+    speed_kmh = Gauge('ferrari_simulator_speed_kmh', 'Vitesse en km/h', GAUGE_LABELS)
+    rpm = Gauge('ferrari_simulator_rpm', 'Régime moteur RPM', GAUGE_LABELS)
+    throttle_percent = Gauge('ferrari_simulator_throttle_percent', 'Position accélérateur %', GAUGE_LABELS)
+
     # Systèmes Électroniques
-    ers_power_kw = Gauge('ferrari_simulator_ers_power_kw', 'Puissance ERS en kW')
-    fuel_remaining_kg = Gauge('ferrari_simulator_fuel_remaining_kg', 'Carburant restant en kg')
-    
+    ers_power_kw = Gauge('ferrari_simulator_ers_power_kw', 'Puissance ERS en kW', GAUGE_LABELS)
+    fuel_remaining_kg = Gauge('ferrari_simulator_fuel_remaining_kg', 'Carburant restant en kg', GAUGE_LABELS)
+
     # Pneus & Stratégie
-    tire_wear_percent = Gauge('ferrari_simulator_tire_wear_percent', 'Usure pneus en %')
-    lap_number = Gauge('ferrari_simulator_lap', 'Numéro de tour actuel')
+    tire_wear_percent = Gauge('ferrari_simulator_tire_wear_percent', 'Usure pneus en %', GAUGE_LABELS)
+    lap_number = Gauge('ferrari_simulator_lap', 'Numéro de tour actuel', GAUGE_LABELS)
 
     # Freinage
-    brake_pressure_bar = Gauge('ferrari_simulator_brake_pressure_bar', 'Pression freinage en bar')
+    brake_pressure_bar = Gauge('ferrari_simulator_brake_pressure_bar', 'Pression freinage en bar', GAUGE_LABELS)
 
     # Insights stratégie
-    lap_time_seconds = Gauge('ferrari_simulator_lap_time_seconds', 'Temps au tour estimé (s)')
-    stint_health_score = Gauge('ferrari_simulator_stint_health_score', 'Indice de santé du relais (0-100)')
+    lap_time_seconds = Gauge('ferrari_simulator_lap_time_seconds', 'Temps au tour estimé (s)', GAUGE_LABELS)
+    stint_health_score = Gauge('ferrari_simulator_stint_health_score', 'Indice de santé du relais (0-100)', GAUGE_LABELS)
     pit_window_probability = Gauge(
         'ferrari_simulator_pit_window_probability',
-        "Probabilité d'ouverture de fenêtre de stand (0-1)"
+        "Probabilité d'ouverture de fenêtre de stand (0-1)",
+        GAUGE_LABELS,
     )
 
     surface_condition_info = Gauge(
         'ferrari_simulator_surface_condition_info',
         'Condition de piste courante (gauge binaire par état)',
-        ['condition']
+        ['condition', *GAUGE_LABELS],
     )
 
     strategy_recommendation_info = Gauge(
         'ferrari_simulator_strategy_recommendation_info',
         'Recommandation stratégique active (gauge binaire par action)',
-        ['recommendation']
+        ['recommendation', *GAUGE_LABELS],
     )
 
     surface_condition_state = Gauge(
         'ferrari_simulator_surface_condition_state',
-        'Indice numérique de condition de piste (0 optimal, 3 humide)'
+        'Indice numérique de condition de piste (0 optimal, 3 humide)',
+        GAUGE_LABELS,
     )
 
     strategy_recommendation_state = Gauge(
         'ferrari_simulator_strategy_recommendation_state',
-        'Indice numérique de recommandation stratégique (0 extend, 2 pit)'
+        'Indice numérique de recommandation stratégique (0 extend, 2 pit)',
+        GAUGE_LABELS,
     )
 else:
     # Mock objects si Prometheus n'est pas disponible
@@ -163,12 +174,33 @@ else:
     surface_condition_state = strategy_recommendation_state = None
 
 
+_METRICS_SERVER_STARTED = False
+
+
+def ensure_metrics_server(port: int = 8000):
+    """Démarre le serveur de métriques s'il ne l'est pas déjà."""
+
+    global _METRICS_SERVER_STARTED
+    if not PROMETHEUS_AVAILABLE or _METRICS_SERVER_STARTED:
+        return
+
+    try:
+        start_http_server(port)
+        _METRICS_SERVER_STARTED = True
+        logger.info("🔍 Serveur de métriques Prometheus disponible sur :%s/metrics", port)
+    except Exception as exc:
+        logger.warning(f"⚠️  Impossible de démarrer le serveur de métriques: {exc}")
+
+
 @dataclass
 class TelemetryData:
     """Structure de données pour la télémétrie"""
     timestamp: str
     car_id: str
+    team: str
     driver: str
+    car_number: int
+    car_model: str
     lap: int
     
     # Moteur
@@ -218,6 +250,209 @@ class TelemetryData:
     pit_window_probability: float
     surface_condition: str
     strategy_recommendation: str
+
+
+@dataclass(frozen=True)
+class TeamDriverConfig:
+    """Configuration statique d'un pilote pour le mode multi-équipe."""
+
+    team: str
+    driver: str
+    car_number: int
+    car_model: str
+    car_id: str
+    base_speed: float
+    base_rpm: int
+    pace_offset: float = 0.0
+    tire_wear_factor: float = 1.0
+    fuel_usage_factor: float = 1.0
+    ers_capacity: float = 1.0
+    anomaly_probability: float = 0.02
+
+
+TEAM_PRESETS: List[Dict] = [
+    {
+        "team": "Oracle Red Bull Racing",
+        "car_model": "RB20",
+        "car_code": "RB20",
+        "base_speed": 320.0,
+        "base_rpm": 15500,
+        "tire_wear_factor": 0.92,
+        "fuel_usage_factor": 0.95,
+        "ers_capacity": 1.1,
+        "anomaly_probability": 0.015,
+        "drivers": [
+            {"name": "Max Verstappen", "number": 1, "pace_offset": 12.0},
+            {"name": "Sergio Pérez", "number": 11, "pace_offset": 8.0},
+        ],
+    },
+    {
+        "team": "Mercedes-AMG Petronas Formula One Team",
+        "car_model": "W15",
+        "car_code": "W15",
+        "base_speed": 312.0,
+        "base_rpm": 15300,
+        "tire_wear_factor": 0.97,
+        "fuel_usage_factor": 0.98,
+        "ers_capacity": 1.05,
+        "anomaly_probability": 0.018,
+        "drivers": [
+            {"name": "Lewis Hamilton", "number": 44, "pace_offset": 7.0},
+            {"name": "George Russell", "number": 63, "pace_offset": 6.0},
+        ],
+    },
+    {
+        "team": "Scuderia Ferrari HP",
+        "car_model": "SF-24",
+        "car_code": "SF24",
+        "base_speed": 315.0,
+        "base_rpm": 15400,
+        "tire_wear_factor": 0.95,
+        "fuel_usage_factor": 0.97,
+        "ers_capacity": 1.05,
+        "anomaly_probability": 0.018,
+        "drivers": [
+            {"name": "Charles Leclerc", "number": 16, "pace_offset": 9.0},
+            {"name": "Carlos Sainz", "number": 55, "pace_offset": 7.5},
+        ],
+    },
+    {
+        "team": "McLaren Formula 1 Team",
+        "car_model": "MCL38",
+        "car_code": "MCL38",
+        "base_speed": 310.0,
+        "base_rpm": 15200,
+        "tire_wear_factor": 0.96,
+        "fuel_usage_factor": 0.99,
+        "ers_capacity": 1.03,
+        "anomaly_probability": 0.02,
+        "drivers": [
+            {"name": "Lando Norris", "number": 4, "pace_offset": 7.5},
+            {"name": "Oscar Piastri", "number": 81, "pace_offset": 6.5},
+        ],
+    },
+    {
+        "team": "Aston Martin Aramco F1 Team",
+        "car_model": "AMR24",
+        "car_code": "AMR24",
+        "base_speed": 304.0,
+        "base_rpm": 15050,
+        "tire_wear_factor": 0.99,
+        "fuel_usage_factor": 1.0,
+        "ers_capacity": 1.0,
+        "anomaly_probability": 0.021,
+        "drivers": [
+            {"name": "Fernando Alonso", "number": 14, "pace_offset": 6.5},
+            {"name": "Lance Stroll", "number": 18, "pace_offset": 3.5},
+        ],
+    },
+    {
+        "team": "BWT Alpine F1 Team",
+        "car_model": "A524",
+        "car_code": "A524",
+        "base_speed": 300.0,
+        "base_rpm": 14950,
+        "tire_wear_factor": 1.02,
+        "fuel_usage_factor": 1.03,
+        "ers_capacity": 0.98,
+        "anomaly_probability": 0.022,
+        "drivers": [
+            {"name": "Esteban Ocon", "number": 31, "pace_offset": 3.5},
+            {"name": "Pierre Gasly", "number": 10, "pace_offset": 3.0},
+        ],
+    },
+    {
+        "team": "Williams Racing",
+        "car_model": "FW46",
+        "car_code": "FW46",
+        "base_speed": 302.0,
+        "base_rpm": 14980,
+        "tire_wear_factor": 0.99,
+        "fuel_usage_factor": 1.01,
+        "ers_capacity": 0.99,
+        "anomaly_probability": 0.021,
+        "drivers": [
+            {"name": "Alexander Albon", "number": 23, "pace_offset": 4.5},
+            {"name": "Logan Sargeant", "number": 2, "pace_offset": 1.5},
+        ],
+    },
+    {
+        "team": "Visa Cash App RB F1 Team",
+        "car_model": "VCARB 01",
+        "car_code": "VCARB01",
+        "base_speed": 301.0,
+        "base_rpm": 14920,
+        "tire_wear_factor": 1.01,
+        "fuel_usage_factor": 1.02,
+        "ers_capacity": 0.99,
+        "anomaly_probability": 0.022,
+        "drivers": [
+            {"name": "Yuki Tsunoda", "number": 22, "pace_offset": 4.0},
+            {"name": "Daniel Ricciardo", "number": 3, "pace_offset": 3.0},
+        ],
+    },
+    {
+        "team": "Stake F1 Team Kick Sauber",
+        "car_model": "C44",
+        "car_code": "C44",
+        "base_speed": 298.0,
+        "base_rpm": 14850,
+        "tire_wear_factor": 1.04,
+        "fuel_usage_factor": 1.05,
+        "ers_capacity": 0.97,
+        "anomaly_probability": 0.024,
+        "drivers": [
+            {"name": "Valtteri Bottas", "number": 77, "pace_offset": 3.2},
+            {"name": "Zhou Guanyu", "number": 24, "pace_offset": 2.6},
+        ],
+    },
+    {
+        "team": "MoneyGram Haas F1 Team",
+        "car_model": "VF-24",
+        "car_code": "VF24",
+        "base_speed": 296.0,
+        "base_rpm": 14800,
+        "tire_wear_factor": 1.06,
+        "fuel_usage_factor": 1.06,
+        "ers_capacity": 0.95,
+        "anomaly_probability": 0.025,
+        "drivers": [
+            {"name": "Kevin Magnussen", "number": 20, "pace_offset": 2.2},
+            {"name": "Nico Hülkenberg", "number": 27, "pace_offset": 2.4},
+        ],
+    },
+]
+
+
+def build_championship_grid() -> List[TeamDriverConfig]:
+    """Construit la grille complète (2 voitures par écurie)."""
+
+    grid: List[TeamDriverConfig] = []
+    for preset in TEAM_PRESETS:
+        for driver in preset["drivers"]:
+            grid.append(
+                TeamDriverConfig(
+                    team=preset["team"],
+                    driver=driver["name"],
+                    car_number=driver["number"],
+                    car_model=preset["car_model"],
+                    car_id=f"{preset['car_code']}-{driver['number']}",
+                    base_speed=preset["base_speed"],
+                    base_rpm=preset["base_rpm"],
+                    pace_offset=preset.get("pace_offset", 0.0) + driver.get("pace_offset", 0.0),
+                    tire_wear_factor=preset.get("tire_wear_factor", 1.0)
+                    * driver.get("tire_wear_factor", 1.0),
+                    fuel_usage_factor=preset.get("fuel_usage_factor", 1.0)
+                    * driver.get("fuel_usage_factor", 1.0),
+                    ers_capacity=preset.get("ers_capacity", 1.0)
+                    * driver.get("ers_capacity", 1.0),
+                    anomaly_probability=driver.get(
+                        "anomaly_probability",
+                        preset.get("anomaly_probability", 0.02),
+                    ),
+                )
+            )
+    return grid
 
 
 class AnomalySimulator:
@@ -274,21 +509,43 @@ class AnomalySimulator:
         return data
 
 
-class FerrariTelemetryGenerator:
-    """Générateur de données télémétrie réalistes pour Ferrari F1"""
+class F1TelemetryGenerator:
+    """Générateur de données télémétrie réalistes pour toutes les équipes F1"""
 
-    def __init__(self, car_id: str = "Ferrari-F1-75", driver: str = "Charles Leclerc"):
+    def __init__(
+        self,
+        *,
+        car_id: str,
+        team: str,
+        driver: str,
+        car_number: int,
+        car_model: str,
+        base_speed: float = 280.0,
+        base_rpm: int = 15000,
+        pace_offset: float = 0.0,
+        tire_wear_factor: float = 1.0,
+        fuel_usage_factor: float = 1.0,
+        ers_capacity: float = 1.0,
+        anomaly_probability: float = 0.02,
+    ):
         self.car_id = car_id
+        self.team = team
         self.driver = driver
+        self.car_number = car_number
+        self.car_model = car_model
         self.lap = 1
         self.tire_compound = random.choice(["soft", "medium", "hard"])
         self.fuel = 110.0  # kg
         self.tire_wear = 0.0
-        self.anomaly_simulator = AnomalySimulator()
+        self.anomaly_simulator = AnomalySimulator(anomaly_probability=anomaly_probability)
 
         # État de la voiture
-        self.base_speed = 280.0
-        self.base_rpm = 15000
+        self.base_speed = base_speed
+        self.base_rpm = base_rpm
+        self.pace_offset = pace_offset
+        self.tire_wear_factor = tire_wear_factor
+        self.fuel_usage_factor = fuel_usage_factor
+        self.ers_capacity = ers_capacity
 
         # Modèle de piste simplifié : chaque segment représente un type de virage
         self.track_profile = [
@@ -450,7 +707,7 @@ class FerrariTelemetryGenerator:
         # Effets physiques simplifiés
         tire_wear_penalty = self.tire_wear * 0.25
         fuel_bonus = (110.0 - self.fuel) * 0.12
-        segment_speed = segment["target_speed"] - tire_wear_penalty + fuel_bonus
+        segment_speed = segment["target_speed"] - tire_wear_penalty + fuel_bonus + self.pace_offset
         segment_speed += random.uniform(-5, 5)
 
         # Lisser la transition de vitesse
@@ -512,16 +769,27 @@ class FerrariTelemetryGenerator:
 
         # Usure pneus basée sur l'intensité du segment et le composé
         compound_multiplier = {"soft": 0.05, "medium": 0.035, "hard": 0.025}[self.tire_compound]
-        wear_increment = compound_multiplier * (0.6 + segment["brake_intensity"]) * random.uniform(0.8, 1.2)
+        wear_increment = (
+            compound_multiplier
+            * (0.6 + segment["brake_intensity"])
+            * random.uniform(0.8, 1.2)
+            * self.tire_wear_factor
+        )
         self.tire_wear = min(100.0, self.tire_wear + wear_increment)
 
         # DRS et ERS
         drs_status = "open" if segment.get("drs") and speed > 290 and throttle > 60 else "closed"
         ers_base = 80 if drs_status == "open" else 60
-        ers_power = max(0.0, min(130.0, ers_base + (100 - throttle) * 0.4 + random.uniform(-10, 10)))
+        ers_power = max(
+            0.0,
+            min(
+                130.0 * self.ers_capacity,
+                (ers_base + (100 - throttle) * 0.4 + random.uniform(-10, 10)) * self.ers_capacity,
+            ),
+        )
 
         # Carburant (diminue plus vite sur les segments rapides)
-        fuel_usage = 0.018 + segment["brake_intensity"] * 0.01 + (throttle / 1000)
+        fuel_usage = (0.018 + segment["brake_intensity"] * 0.01 + (throttle / 1000)) * self.fuel_usage_factor
         self.fuel = max(0.0, self.fuel - fuel_usage)
 
         # Environnement avec tendances lentes
@@ -537,7 +805,10 @@ class FerrariTelemetryGenerator:
         data_dict = {
             "timestamp": datetime.utcnow().isoformat() + "Z",
             "car_id": self.car_id,
+            "team": self.team,
             "driver": self.driver,
+            "car_number": self.car_number,
+            "car_model": self.car_model,
             "lap": self.lap,
             "speed_kmh": round(speed, 2),
             "rpm": rpm,
@@ -594,15 +865,19 @@ class FerrariTelemetryGenerator:
 
 class MetricsCollector:
     """Collecteur de métriques de performance"""
-    
-    def __init__(self):
+
+    def __init__(self, car_id: str, team: str, driver: str):
         self.messages_sent = 0
         self.messages_failed = 0
         self.total_latency = 0.0
         self.start_time = time.time()
         self.last_report_time = time.time()
         self.lock = threading.Lock()
-        
+        self.labels = {"car_id": car_id, "team": team, "driver": driver}
+        self.team = team
+        self.car_id = car_id
+        self.driver = driver
+
     def record_success(self, latency: float):
         """Enregistre un message envoyé avec succès"""
         with self.lock:
@@ -613,10 +888,10 @@ class MetricsCollector:
                 if PROMETHEUS_AVAILABLE and current_throughput is not None:
                     elapsed = time.time() - self.start_time
                     throughput = self.messages_sent / elapsed if elapsed > 0 else 0
-                    current_throughput.set(round(throughput, 2))
+                    current_throughput.labels(**self.labels).set(round(throughput, 2))
             except Exception:
                 pass
-    
+
     def record_failure(self):
         """Enregistre un échec d'envoi"""
         with self.lock:
@@ -633,7 +908,7 @@ class MetricsCollector:
             try:
                 if PROMETHEUS_AVAILABLE and current_throughput is not None:
                     # current_throughput attend un float en msg/s
-                    current_throughput.set(round(throughput, 2))
+                    current_throughput.labels(**self.labels).set(round(throughput, 2))
             except Exception:
                 # Ne pas faire échouer le collecteur si la mise à jour Prometheus plante
                 pass
@@ -659,7 +934,7 @@ class MetricsCollector:
         metrics = self.get_metrics()
         logger.info(f"""
 ╔══════════════════════════════════════════════════════════════╗
-║ 🏎️  Ferrari F1 Telemetry Simulator - Performance Report     ║
+║ 🏎️  {self.team} - {self.driver} ({self.car_id})               ║
 ╠══════════════════════════════════════════════════════════════╣
 ║ Messages envoyés:    {metrics['messages_sent']:>10} msg                ║
 ║ Messages échoués:    {metrics['messages_failed']:>10} msg                ║
@@ -672,76 +947,77 @@ class MetricsCollector:
 
 class HTTPPublisher:
     """Publisher pour endpoint HTTP"""
-    
+
     def __init__(self, endpoint_url: str):
         if not HTTP_AVAILABLE:
             raise ImportError("aiohttp non installé")
-        
+
         self.endpoint_url = endpoint_url
         self.session: Optional[aiohttp.ClientSession] = None
         logger.info(f"✅ HTTP Publisher initialisé: {endpoint_url}")
-    
+
     async def initialize(self):
         """Initialise la session HTTP"""
         self.session = aiohttp.ClientSession()
-    
+
     def update_thermal_metrics(self, data: TelemetryData):
         """Met à jour toutes les métriques pour le Thermal Cockpit Dashboard"""
         if not PROMETHEUS_AVAILABLE:
             return
-        
+
         try:
+            labels = {"car_id": data.car_id, "team": data.team, "driver": data.driver}
             # Températures Freins
-            if brake_temp_fl: brake_temp_fl.set(data.brake_temp_fl_celsius)
-            if brake_temp_fr: brake_temp_fr.set(data.brake_temp_fr_celsius)
-            if brake_temp_rl: brake_temp_rl.set(data.brake_temp_rl_celsius)
-            if brake_temp_rr: brake_temp_rr.set(data.brake_temp_rr_celsius)
-            
+            if brake_temp_fl: brake_temp_fl.labels(**labels).set(data.brake_temp_fl_celsius)
+            if brake_temp_fr: brake_temp_fr.labels(**labels).set(data.brake_temp_fr_celsius)
+            if brake_temp_rl: brake_temp_rl.labels(**labels).set(data.brake_temp_rl_celsius)
+            if brake_temp_rr: brake_temp_rr.labels(**labels).set(data.brake_temp_rr_celsius)
+
             # Températures Pneus
-            if tire_temp_fl: tire_temp_fl.set(data.tire_temp_fl_celsius)
-            if tire_temp_fr: tire_temp_fr.set(data.tire_temp_fr_celsius)
-            if tire_temp_rl: tire_temp_rl.set(data.tire_temp_rl_celsius)
-            if tire_temp_rr: tire_temp_rr.set(data.tire_temp_rr_celsius)
-            
+            if tire_temp_fl: tire_temp_fl.labels(**labels).set(data.tire_temp_fl_celsius)
+            if tire_temp_fr: tire_temp_fr.labels(**labels).set(data.tire_temp_fr_celsius)
+            if tire_temp_rl: tire_temp_rl.labels(**labels).set(data.tire_temp_rl_celsius)
+            if tire_temp_rr: tire_temp_rr.labels(**labels).set(data.tire_temp_rr_celsius)
+
             # Performance & Moteur
-            if engine_temp: engine_temp.set(data.engine_temp_celsius)
-            if speed_kmh: speed_kmh.set(data.speed_kmh)
-            if rpm: rpm.set(data.rpm)
-            if throttle_percent: throttle_percent.set(data.throttle_percent)
-            
+            if engine_temp: engine_temp.labels(**labels).set(data.engine_temp_celsius)
+            if speed_kmh: speed_kmh.labels(**labels).set(data.speed_kmh)
+            if rpm: rpm.labels(**labels).set(data.rpm)
+            if throttle_percent: throttle_percent.labels(**labels).set(data.throttle_percent)
+
             # Systèmes Électroniques
-            if ers_power_kw: ers_power_kw.set(data.ers_power_kw)
-            if fuel_remaining_kg: fuel_remaining_kg.set(data.fuel_remaining_kg)
-            
+            if ers_power_kw: ers_power_kw.labels(**labels).set(data.ers_power_kw)
+            if fuel_remaining_kg: fuel_remaining_kg.labels(**labels).set(data.fuel_remaining_kg)
+
             # Pneus & Stratégie
-            if tire_wear_percent: tire_wear_percent.set(data.tire_wear_percent)
-            if lap_number: lap_number.set(data.lap)
+            if tire_wear_percent: tire_wear_percent.labels(**labels).set(data.tire_wear_percent)
+            if lap_number: lap_number.labels(**labels).set(data.lap)
 
             # Freinage
-            if brake_pressure_bar: brake_pressure_bar.set(data.brake_pressure_bar)
+            if brake_pressure_bar: brake_pressure_bar.labels(**labels).set(data.brake_pressure_bar)
 
             # Insights stratégie
-            if lap_time_seconds: lap_time_seconds.set(data.lap_time_seconds)
-            if stint_health_score: stint_health_score.set(data.stint_health_score)
-            if pit_window_probability: pit_window_probability.set(data.pit_window_probability)
+            if lap_time_seconds: lap_time_seconds.labels(**labels).set(data.lap_time_seconds)
+            if stint_health_score: stint_health_score.labels(**labels).set(data.stint_health_score)
+            if pit_window_probability: pit_window_probability.labels(**labels).set(data.pit_window_probability)
             if surface_condition_info:
                 for condition in SURFACE_CONDITIONS:
                     value = 1.0 if data.surface_condition == condition else 0.0
-                    surface_condition_info.labels(condition=condition).set(value)
+                    surface_condition_info.labels(condition=condition, **labels).set(value)
             if surface_condition_state:
                 surface_index = SURFACE_CONDITION_INDEX.get(data.surface_condition, 0)
-                surface_condition_state.set(surface_index)
+                surface_condition_state.labels(**labels).set(surface_index)
             if strategy_recommendation_info:
                 for action in STRATEGY_ACTIONS:
                     value = 1.0 if data.strategy_recommendation == action else 0.0
-                    strategy_recommendation_info.labels(recommendation=action).set(value)
+                    strategy_recommendation_info.labels(recommendation=action, **labels).set(value)
             if strategy_recommendation_state:
                 recommendation_index = STRATEGY_RECOMMENDATION_INDEX.get(data.strategy_recommendation, 0)
-                strategy_recommendation_state.set(recommendation_index)
+                strategy_recommendation_state.labels(**labels).set(recommendation_index)
 
         except Exception as e:
             logger.debug(f"Erreur mise à jour métriques thermiques: {e}")
-    
+
     async def send(self, data: TelemetryData) -> float:
         """Envoie des données via HTTP POST et retourne la latence"""
         if not self.session:
@@ -750,16 +1026,19 @@ class HTTPPublisher:
         start = time.time()
         data_dict = asdict(data)
         
+        labels = {"car_id": data.car_id, "team": data.team, "driver": data.driver}
+
         # Incrémenter le compteur de messages générés
         if messages_generated:
-            messages_generated.inc()
-        
+            messages_generated.labels(**labels).inc()
+
         # Mise à jour des métriques individuelles pour Thermal Cockpit Dashboard
         self.update_thermal_metrics(data)
-        
+
         try:
             response_status = None
-            with send_latency.time() if send_latency else nullcontext():
+            latency_histogram = send_latency.labels(**labels) if send_latency else None
+            with latency_histogram.time() if latency_histogram else nullcontext():
                 async with self.session.post(
                     self.endpoint_url,
                     json=data_dict,
@@ -772,10 +1051,10 @@ class HTTPPublisher:
 
             if 200 <= (response_status or 0) < 400:
                 if messages_sent:
-                    messages_sent.inc()
+                    messages_sent.labels(**labels).inc()
             else:
                 if send_errors:
-                    send_errors.inc()
+                    send_errors.labels(**labels).inc()
                 logger.warning(
                     "Réponse HTTP inattendue du stream-processor: %s",
                     response_status,
@@ -785,7 +1064,7 @@ class HTTPPublisher:
         except Exception as e:
             # Incrémenter le compteur d'erreurs
             if send_errors:
-                send_errors.inc()
+                send_errors.labels(**labels).inc()
             logger.debug(f"HTTP error: {e}")
             return time.time() - start
     
@@ -795,81 +1074,150 @@ class HTTPPublisher:
             await self.session.close()
 
 
-class FerrariSensorSimulator:
-    """Simulateur principal haute performance."""
+class F1CarSimulator:
+    """Simulateur pour une voiture individuelle."""
 
     def __init__(self, config: Dict):
         self.config = config
-        self.generator = FerrariTelemetryGenerator(
-            car_id=config.get("car_id", "Ferrari-F1-75"),
-            driver=config.get("driver", "Charles Leclerc")
+        self.display_name = f"{config.get('team')} - {config.get('driver')} ({config.get('car_id')})"
+        self.generator = F1TelemetryGenerator(
+            car_id=config["car_id"],
+            team=config["team"],
+            driver=config["driver"],
+            car_number=config["car_number"],
+            car_model=config["car_model"],
+            base_speed=config.get("base_speed", 305.0),
+            base_rpm=config.get("base_rpm", 15000),
+            pace_offset=config.get("pace_offset", 0.0),
+            tire_wear_factor=config.get("tire_wear_factor", 1.0),
+            fuel_usage_factor=config.get("fuel_usage_factor", 1.0),
+            ers_capacity=config.get("ers_capacity", 1.0),
+            anomaly_probability=config.get("anomaly_probability", 0.02),
         )
-        self.metrics = MetricsCollector()
+        self.metrics = MetricsCollector(config["car_id"], config["team"], config["driver"])
         self.running = False
         self.publisher: Optional[HTTPPublisher] = None
         self.http_endpoint = config.get("http_endpoint", "http://localhost:8001/telemetry")
-        self.target_throughput = max(1, config.get("target_throughput", 1500))
+        self.target_throughput = max(1, config.get("target_throughput", 500))
+        self.delay = max(0.0, 1.0 / self.target_throughput)
 
-        # Démarrer serveur métriques Prometheus
-        self.start_metrics_server()
+    async def _ensure_publisher(self):
+        if self.publisher is None:
+            self.publisher = HTTPPublisher(endpoint_url=self.http_endpoint)
+            await self.publisher.initialize()
 
-    def start_metrics_server(self):
-        """Démarre le serveur HTTP pour les métriques Prometheus"""
-        if PROMETHEUS_AVAILABLE:
-            try:
-                # Démarre sur le port 8000 pour les métriques
-                start_http_server(8000)
-                logger.info("🔍 Serveur de métriques Prometheus démarré sur :8000/metrics")
-            except Exception as e:
-                logger.warning(f"⚠️  Impossible de démarrer le serveur de métriques: {e}")
-
-    async def run_async(self):
-        """Exécution asynchrone (pour HTTP)"""
+    async def run_forever(self):
+        """Boucle principale d'envoi."""
         if not HTTP_AVAILABLE:
             raise RuntimeError("aiohttp est requis pour le mode HTTP. Installez 'aiohttp'.")
 
-        logger.info("🏁 Démarrage du simulateur en mode HTTP")
-        logger.info(f"🎯 Objectif: {self.target_throughput} messages/s")
-
-        self.publisher = HTTPPublisher(endpoint_url=self.http_endpoint)
-        await self.publisher.initialize()
+        await self._ensure_publisher()
 
         self.running = True
-
-        # Calcul du délai entre messages pour atteindre le throughput cible
-        delay = max(0.0, 1.0 / self.target_throughput)
+        logger.info(
+            "🏎️  %s -> %s (%.0f msg/s)",
+            self.display_name,
+            self.http_endpoint,
+            self.target_throughput,
+        )
 
         try:
             while self.running:
-                # Génération du message
                 telemetry = self.generator.generate()
 
-                # Envoi HTTP
                 try:
                     latency = await self.publisher.send(telemetry)
                     self.metrics.record_success(latency)
-                except Exception as e:
-                    logger.error(f"Erreur d'envoi: {e}")
+                except Exception as exc:
+                    logger.error("Erreur d'envoi pour %s: %s", self.display_name, exc)
                     self.metrics.record_failure()
 
-                # Rapport périodique
                 if self.metrics.should_report(interval=5):
                     self.metrics.print_report()
 
-                # Délai pour contrôler le throughput
-                await asyncio.sleep(delay)
+                await asyncio.sleep(self.delay)
 
+        except asyncio.CancelledError:
+            logger.info("⏹️  Arrêt demandé pour %s", self.display_name)
+            raise
         except KeyboardInterrupt:
-            logger.info("\n🛑 Arrêt du simulateur...")
+            logger.info("🛑 Interruption utilisateur pour %s", self.display_name)
         finally:
+            self.running = False
             if self.publisher:
                 await self.publisher.close()
-            # Rapport final
             self.metrics.print_report()
 
+    def stop(self):
+        """Arrête la boucle d'envoi"""
+        self.running = False
+
     def run(self):
-        """Point d'entrée principal"""
-        asyncio.run(self.run_async())
+        """Exécution synchrone pour un seul simulateur."""
+        try:
+            asyncio.run(self.run_forever())
+        except KeyboardInterrupt:
+            logger.info("🛑 Arrêt demandé pour %s", self.display_name)
+
+
+class F1ChampionshipSimulator:
+    """Orchestrateur multi-écuries (2 voitures par équipe)."""
+
+    def __init__(self, config: Dict):
+        self.config = config
+        self.http_endpoint = config.get("http_endpoint", "http://stream-processor:8001/telemetry")
+        self.target_throughput = max(1, config.get("target_throughput_per_car", 250))
+        self.grid: List[TeamDriverConfig] = config.get("grid", build_championship_grid())
+        self.simulators: List[F1CarSimulator] = []
+        for car in self.grid:
+            car_config = {
+                "car_id": car.car_id,
+                "team": car.team,
+                "driver": car.driver,
+                "car_number": car.car_number,
+                "car_model": car.car_model,
+                "base_speed": car.base_speed,
+                "base_rpm": car.base_rpm,
+                "pace_offset": car.pace_offset,
+                "tire_wear_factor": car.tire_wear_factor,
+                "fuel_usage_factor": car.fuel_usage_factor,
+                "ers_capacity": car.ers_capacity,
+                "anomaly_probability": car.anomaly_probability,
+                "http_endpoint": self.http_endpoint,
+                "target_throughput": self.target_throughput,
+            }
+            self.simulators.append(F1CarSimulator(car_config))
+
+    async def run_async(self):
+        if not HTTP_AVAILABLE:
+            raise RuntimeError("aiohttp est requis pour le mode HTTP. Installez 'aiohttp'.")
+
+        logger.info(
+            "🏆 Mode championnat: %d voitures streaming vers %s (%.0f msg/s par voiture)",
+            len(self.simulators),
+            self.http_endpoint,
+            self.target_throughput,
+        )
+
+        tasks = [asyncio.create_task(sim.run_forever()) for sim in self.simulators]
+        try:
+            await asyncio.gather(*tasks)
+        except KeyboardInterrupt:
+            logger.info("🛑 Arrêt demandé pour le mode championnat")
+        except asyncio.CancelledError:
+            raise
+        finally:
+            for sim in self.simulators:
+                sim.stop()
+            for task in tasks:
+                task.cancel()
+            await asyncio.gather(*tasks, return_exceptions=True)
+
+    def run(self):
+        try:
+            asyncio.run(self.run_async())
+        except KeyboardInterrupt:
+            logger.info("🛑 Mode championnat interrompu")
 
 
 def _int_from_env(name: str, default: int) -> int:
@@ -897,29 +1245,65 @@ def _int_from_env(name: str, default: int) -> int:
 def load_config() -> Dict:
     """Charge la configuration depuis les variables d'environnement."""
 
+    mode = os.getenv("SIMULATION_MODE", "championship").strip().lower()
+    if mode not in {"single", "championship"}:
+        logger.warning("Mode '%s' inconnu. Utilisation du mode 'championship'.", mode)
+        mode = "championship"
+
+    http_endpoint = os.getenv("HTTP_ENDPOINT", "http://stream-processor:8001/telemetry")
+
+    if mode == "single":
+        team = os.getenv("TEAM_NAME", "Scuderia Ferrari HP")
+        driver = os.getenv("DRIVER", "Charles Leclerc")
+        car_model = os.getenv("CAR_MODEL", "SF-24")
+        car_number = _int_from_env("CAR_NUMBER", 16)
+        default_car_id = f"{car_model}-{car_number}"
+        car_id = os.getenv("CAR_ID", default_car_id)
+
+        return {
+            "mode": mode,
+            "car_id": car_id,
+            "team": team,
+            "driver": driver,
+            "car_number": car_number,
+            "car_model": car_model,
+            "target_throughput": _int_from_env("TARGET_THROUGHPUT", 1500),
+            "http_endpoint": http_endpoint,
+        }
+
     return {
-        "car_id": os.getenv("CAR_ID", "Ferrari-F1-75"),
-        "driver": os.getenv("DRIVER", "Charles Leclerc"),
-        "target_throughput": _int_from_env("TARGET_THROUGHPUT", 1500),
-        "http_endpoint": os.getenv("HTTP_ENDPOINT", "http://stream-processor:8001/telemetry"),
+        "mode": "championship",
+        "http_endpoint": http_endpoint,
+        "target_throughput_per_car": _int_from_env("TARGET_THROUGHPUT_PER_CAR", 250),
+        "grid": build_championship_grid(),
     }
 
 
 def main():
     """Point d'entrée principal"""
     logger.info("=" * 80)
-    logger.info("🏎️  Ferrari F1 IoT Sensor Simulator - High Performance Edition")
+    logger.info("🏎️  F1 IoT Sensor Simulator - Multi-team Edition")
     logger.info("=" * 80)
-    
+
     config = load_config()
-    
+
+    ensure_metrics_server()
+
     logger.info(f"Configuration:")
     for key, value in config.items():
-        if "password" not in key.lower():
+        if "password" in key.lower():
+            continue
+        if key == "grid" and isinstance(value, list):
+            logger.info("  grid: %d voitures (2 par équipe)", len(value))
+        else:
             logger.info(f"  {key}: {value}")
-    
-    simulator = FerrariSensorSimulator(config)
-    simulator.run()
+
+    if config["mode"] == "single":
+        simulator = F1CarSimulator(config)
+        simulator.run()
+    else:
+        simulator = F1ChampionshipSimulator(config)
+        simulator.run()
 
 
 if __name__ == "__main__":
